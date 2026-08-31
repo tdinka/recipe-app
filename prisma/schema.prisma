@@ -1,0 +1,127 @@
+// Family Recipe Box — data model
+// Uses Postgres (works well with Railway/Render/Vercel-style hosting where the
+// filesystem isn't persistent, unlike SQLite's single-file approach).
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Household {
+  id         String   @id @default(cuid())
+  name       String
+  inviteCode String   @unique
+  createdAt  DateTime @default(now())
+
+  users           User[]
+  recipes         Recipe[]
+  tags            Tag[]
+  mealPlanEntries MealPlanEntry[]
+  groceryItems    GroceryItem[]
+}
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String
+  name         String
+  createdAt    DateTime @default(now())
+
+  household   Household @relation(fields: [householdId], references: [id], onDelete: Cascade)
+  householdId String
+}
+
+model Recipe {
+  id          String  @id @default(cuid())
+  title       String
+  sourceUrl   String?
+  imageUrl    String?
+  description String?
+  servings    Int?
+  prepMinutes Int?
+  cookMinutes Int?
+  // Only set when a site publishes a single combined time instead of a prep/cook split
+  // (e.g. NYT Cooking often only has "totalTime"). Kept separate rather than guessed
+  // into prep or cook so the number shown is never misattributed.
+  totalMinutes Int?
+
+  // Stored as JSON strings (SQLite has no native array/json column):
+  // ingredients: [{ raw: string, quantity: string|null, unit: string|null, item: string }]
+  // instructions: [string]
+  ingredientsJson  String
+  instructionsJson String
+
+  category String? // Breakfast | Lunch | Dinner | Dessert | Snack | Drink | Side | Sauce/Base
+  cuisine  String? // e.g. Italian, Thai, Mexican — free text
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  household   Household @relation(fields: [householdId], references: [id], onDelete: Cascade)
+  householdId String
+
+  tags            RecipeTag[]
+  mealPlanEntries MealPlanEntry[]
+
+  @@index([householdId])
+  @@index([category])
+}
+
+model Tag {
+  id          String @id @default(cuid())
+  name        String
+  household   Household @relation(fields: [householdId], references: [id], onDelete: Cascade)
+  householdId String
+  recipes     RecipeTag[]
+
+  @@unique([householdId, name])
+}
+
+model RecipeTag {
+  recipe   Recipe @relation(fields: [recipeId], references: [id], onDelete: Cascade)
+  recipeId String
+  tag      Tag    @relation(fields: [tagId], references: [id], onDelete: Cascade)
+  tagId    String
+
+  @@id([recipeId, tagId])
+}
+
+model MealPlanEntry {
+  id       String   @id @default(cuid())
+  date     DateTime // stored at local midnight for the planned day
+  mealType String // Breakfast | Lunch | Dinner | Snack
+  servings Int?
+  // Multiplier applied to the recipe's base ingredient quantities (0.5 = half, 2 = double, etc).
+  // Used when generating a grocery list so scaled quantities carry through correctly.
+  scale    Float    @default(1)
+
+  recipe   Recipe @relation(fields: [recipeId], references: [id], onDelete: Cascade)
+  recipeId String
+
+  household   Household @relation(fields: [householdId], references: [id], onDelete: Cascade)
+  householdId String
+
+  createdAt DateTime @default(now())
+
+  @@index([householdId, date])
+}
+
+model GroceryItem {
+  id        String  @id @default(cuid())
+  name      String
+  quantity  String?
+  checked   Boolean @default(false)
+  // "manual" for hand-added items, or the recipeId that generated this item
+  source    String  @default("manual")
+
+  household   Household @relation(fields: [householdId], references: [id], onDelete: Cascade)
+  householdId String
+
+  createdAt DateTime @default(now())
+
+  @@index([householdId])
+}

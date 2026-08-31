@@ -1,0 +1,69 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    @apply bg-linen-50 text-ink;
+  }
+  body {
+    @apply font-body antialiased;
+  }
+  h1, h2, h3, h4 {
+    @apply font-display;
+  }
+}
+
+@layer components {
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 rounded-card px-4 py-2 text-sm font-semibold transition-colors;
+  }
+  .btn-primary {
+    @apply btn bg-brick text-linen-50 hover:bg-brick-dark;
+  }
+  .btn-secondary {
+    @apply btn bg-forest text-linen-50 hover:bg-forest-dark;
+  }
+  .btn-ghost {
+    @apply btn bg-transparent text-ink border border-linen-400 hover:bg-linen-100;
+  }
+  .card {
+    @apply rounded-card bg-white/70 shadow-card border border-linen-300;
+  }
+  .input {
+    @apply w-full rounded-md border border-linen-400 bg-white px-3 py-2 text-sm text-ink placeholder:text-ink-light/60 focus:outline-none focus:ring-2 focus:ring-brick/40 focus:border-brick;
+  }
+  .label {
+    @apply block text-xs font-semibold uppercase tracking-wide text-ink-light mb-1;
+  }
+  .measure {
+    @apply font-mono text-sm text-forest-dark;
+  }
+  .tag-pill {
+    @apply inline-flex items-center rounded-full bg-mustard-50 px-2.5 py-0.5 text-xs font-medium text-mustard-dark border border-mustard/30;
+  }
+  .category-pill {
+    @apply inline-flex items-center rounded-full bg-forest-50 px-2.5 py-0.5 text-xs font-medium text-forest-dark border border-forest/30;
+  }
+}
+
+/* Recipe card index-card signature: a subtle punch-hole + slight lean on hover */
+.recipe-card {
+  position: relative;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+.recipe-card:hover {
+  transform: rotate(-0.4deg) translateY(-2px);
+}
+.recipe-card::before {
+  content: "";
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: #EFEADD;
+  box-shadow: inset 0 1px 2px rgba(43, 42, 36, 0.25);
+  z-index: 10;
+}
