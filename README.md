@@ -32,6 +32,7 @@ Open `.env` and set:
 - `NEXTAUTH_SECRET` — generate one with `openssl rand -base64 32`
 - `NEXTAUTH_URL` — leave as `http://localhost:3000` for local dev
 - `ANTHROPIC_API_KEY` — optional, only needed for the "Upload a screenshot" recipe import. Get one at [console.anthropic.com/settings/keys](https://console.anthropic.com/settings/keys) (this is a separate developer account from claude.ai — it bills per API call, typically a fraction of a cent per screenshot). Leave blank to skip this feature entirely.
+- `UNSPLASH_ACCESS_KEY` — optional, only needed for the "Find a photo" feature (searching stock photos for recipes with no image). Get a free key at [unsplash.com/developers](https://unsplash.com/developers). Leave blank to skip this feature entirely.
 
 Create the database tables:
 
@@ -60,7 +61,7 @@ Railway builds and runs the app for you — no server administration, no keeping
    Then create an empty repo on [github.com/new](https://github.com/new) and follow the "push an existing repository" instructions it shows you.
 2. **On Railway**, create a new project → *Deploy from GitHub repo* → select this repo.
 3. **Add a Postgres database** to the same Railway project (New → Database → PostgreSQL). Railway automatically makes its connection string available to your app service as a variable.
-4. **Set environment variables** on your app service in Railway: `DATABASE_URL` (reference the Postgres service's variable, e.g. `${{Postgres.DATABASE_URL}}`), `NEXTAUTH_SECRET`, `NEXTAUTH_URL` (your Railway-provided domain, e.g. `https://your-app.up.railway.app`), and `ANTHROPIC_API_KEY` if you're using screenshot import.
+4. **Set environment variables** on your app service in Railway: `DATABASE_URL` (reference the Postgres service's variable, e.g. `${{Postgres.DATABASE_URL}}`), `NEXTAUTH_SECRET`, `NEXTAUTH_URL` (your Railway-provided domain, e.g. `https://your-app.up.railway.app`), `ANTHROPIC_API_KEY` if you're using screenshot import, and `UNSPLASH_ACCESS_KEY` if you're using the photo-search feature.
 5. Railway runs `npm run build` and `npm run start` automatically on every push to your repo's main branch. After the first deploy, run `npm run db:push` once against the production database to create the tables (Railway's project shell, or run it locally with `DATABASE_URL` temporarily pointed at production).
 6. Once it's live, share the Railway URL with your family instead of `localhost`.
 

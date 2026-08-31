@@ -20,6 +20,8 @@ export default function GroceryListPage() {
   const defaultStart = format(startOfWeek(new Date(), { weekStartsOn: 1 }), "yyyy-MM-dd");
   const defaultEnd = format(addDays(startOfWeek(new Date(), { weekStartsOn: 1 }), 6), "yyyy-MM-dd");
 
+  // Read any ?start=&end= params directly from the URL on first render,
+  // rather than via Next's useSearchParams() hook (see recipes/page.tsx for why).
   const [rangeStart, setRangeStart] = useState(defaultStart);
   const [rangeEnd, setRangeEnd] = useState(defaultEnd);
   const [arrivedWithRange, setArrivedWithRange] = useState(false);
@@ -43,6 +45,7 @@ export default function GroceryListPage() {
 
   useEffect(() => { loadItems(); }, [loadItems]);
 
+  // If we arrived from the meal plan with a date range, generate automatically.
   useEffect(() => {
     if (arrivedWithRange) {
       handleGenerate();

@@ -3,11 +3,14 @@
 import { useState } from "react";
 import { CATEGORIES } from "@/lib/constants";
 import { parseIngredientLine } from "@/lib/ingredient-parser";
+import { PhotoPicker, type SelectedPhoto } from "@/components/PhotoPicker";
 
 export interface RecipeFormValues {
   title: string;
   sourceUrl: string | null;
   imageUrl: string | null;
+  imageAttributionName: string | null;
+  imageAttributionUrl: string | null;
   description: string | null;
   servings: number | null;
   prepMinutes: number | null;
@@ -24,6 +27,8 @@ export const emptyRecipeForm: RecipeFormValues = {
   title: "",
   sourceUrl: null,
   imageUrl: null,
+  imageAttributionName: null,
+  imageAttributionUrl: null,
   description: null,
   servings: null,
   prepMinutes: null,
@@ -48,6 +53,14 @@ export function RecipeForm({
   const [values, setValues] = useState<RecipeFormValues>(initial);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showPhotoPicker, setShowPhotoPicker] = useState(false);
+
+  function handlePhotoSelected(photo: SelectedPhoto) {
+    set("imageUrl", photo.url);
+    set("imageAttributionName", photo.attributionName);
+    set("imageAttributionUrl", photo.attributionUrl);
+    setShowPhotoPicker(false);
+  }
 
   function set<K extends keyof RecipeFormValues>(key: K, value: RecipeFormValues[K]) {
     setValues((v) => ({ ...v, [key]: value }));
@@ -85,9 +98,33 @@ export function RecipeForm({
         </div>
         <div>
           <label className="label">Image URL</label>
-          <input className="input" value={values.imageUrl ?? ""} onChange={(e) => set("imageUrl", e.target.value || null)} />
+          <input className="input" value={values.imageUrl ?? ""} onChange={(e) => { set("imageUrl", e.target.value || null); set("imageAttributionName", null); set("imageAttributionUrl", null); }} />
+          <button
+            type="button"
+            onClick={() => setShowPhotoPicker((v) => !v)}
+            className="mt-1 text-xs font-medium text-forest hover:underline"
+          >
+            {values.imageUrl ? "Choose a different photo" : "Find a photo"}
+          </button>
+          {values.imageAttributionName && values.imageAttributionUrl && (
+            <p className="mt-1 text-[10px] text-ink-light">
+              Photo by{" "}
+              <a href={values.imageAttributionUrl} target="_blank" rel="noreferrer" className="underline">
+                {values.imageAttributionName}
+              </a>{" "}
+              on Unsplash
+            </p>
+          )}
         </div>
       </div>
+
+      {showPhotoPicker && (
+        <PhotoPicker
+          initialQuery={values.title || "recipe"}
+          onSelect={handlePhotoSelected}
+          onClose={() => setShowPhotoPicker(false)}
+        />
+      )}
 
       <div>
         <label className="label">Description</label>

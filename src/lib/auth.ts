@@ -4,6 +4,9 @@ import bcrypt from "bcryptjs";
 import { db } from "@/lib/db";
 
 export const authOptions: NextAuthOptions = {
+  // Passed explicitly rather than relying on NextAuth's automatic env-var
+  // detection, which can be unreliable in some hosting environments even
+  // when NEXTAUTH_SECRET is genuinely set.
   secret: process.env.NEXTAUTH_SECRET,
   session: { strategy: "jwt" },
   pages: {

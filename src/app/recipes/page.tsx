@@ -5,6 +5,10 @@ import Link from "next/link";
 import { RecipeCard, type RecipeCardData } from "@/components/RecipeCard";
 import { CATEGORIES } from "@/lib/constants";
 
+// Reads the current filter state from the URL bar directly, rather than via
+// Next's useSearchParams() hook — sidesteps a Next.js 14.2.x bug where that
+// hook combined with Suspense + force-dynamic rendering can crash the server
+// with a stack overflow during response serialization.
 function readFiltersFromLocation() {
   if (typeof window === "undefined") return { category: "", tag: "", q: "" };
   const params = new URLSearchParams(window.location.search);

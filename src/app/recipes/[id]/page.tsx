@@ -7,12 +7,15 @@ import { useParams, useRouter } from "next/navigation";
 import { MEAL_TYPES } from "@/lib/constants";
 import { scaleQuantityText, formatScaledNumber } from "@/lib/scale-quantity";
 import type { ParsedIngredient } from "@/lib/ingredient-parser";
+import { PhotoPicker, type SelectedPhoto } from "@/components/PhotoPicker";
 
 interface RecipeDetail {
   id: string;
   title: string;
   sourceUrl: string | null;
   imageUrl: string | null;
+  imageAttributionName: string | null;
+  imageAttributionUrl: string | null;
   description: string | null;
   servings: number | null;
   prepMinutes: number | null;
@@ -37,6 +40,43 @@ export default function RecipeDetailPage() {
 
   const SCALE_OPTIONS = [0.5, 1, 2, 3];
   const [scale, setScale] = useState(1);
+
+  const [showPhotoPicker, setShowPhotoPicker] = useState(false);
+  const [savingPhoto, setSavingPhoto] = useState(false);
+
+  async function handlePhotoSelected(photo: SelectedPhoto) {
+    if (!recipe) return;
+    setSavingPhoto(true);
+    try {
+      const res = await fetch(`/api/recipes/${recipe.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: recipe.title,
+          sourceUrl: recipe.sourceUrl,
+          imageUrl: photo.url,
+          imageAttributionName: photo.attributionName,
+          imageAttributionUrl: photo.attributionUrl,
+          description: recipe.description,
+          servings: recipe.servings,
+          prepMinutes: recipe.prepMinutes,
+          cookMinutes: recipe.cookMinutes,
+          totalMinutes: recipe.totalMinutes,
+          category: recipe.category,
+          cuisine: recipe.cuisine,
+          ingredients: recipe.ingredients,
+          instructions: recipe.instructions,
+          tags: recipe.tags,
+        }),
+      });
+      if (res.ok) {
+        setRecipe({ ...recipe, imageUrl: photo.url, imageAttributionName: photo.attributionName, imageAttributionUrl: photo.attributionUrl });
+        setShowPhotoPicker(false);
+      }
+    } finally {
+      setSavingPhoto(false);
+    }
+  }
 
   useEffect(() => {
     fetch(`/api/recipes/${params.id}`).then(async (res) => {
@@ -87,9 +127,38 @@ export default function RecipeDetailPage() {
         </div>
       </div>
 
-      {recipe.imageUrl && (
-        <div className="relative mt-4 h-72 w-full overflow-hidden rounded-card bg-linen-200">
-          <Image src={recipe.imageUrl} alt={recipe.title} fill className="object-cover" unoptimized />
+      {recipe.imageUrl ? (
+        <div className="mt-4">
+          <div className="relative h-72 w-full overflow-hidden rounded-card bg-linen-200">
+            <Image src={recipe.imageUrl} alt={recipe.title} fill className="object-cover" unoptimized />
+          </div>
+          {recipe.imageAttributionName && recipe.imageAttributionUrl && (
+            <p className="mt-1 text-[10px] text-ink-light">
+              Photo by{" "}
+              <a href={recipe.imageAttributionUrl} target="_blank" rel="noreferrer" className="underline">
+                {recipe.imageAttributionName}
+              </a>{" "}
+              on Unsplash
+            </p>
+          )}
+        </div>
+      ) : (
+        <div className="mt-4">
+          {!showPhotoPicker && (
+            <button onClick={() => setShowPhotoPicker(true)} className="btn-ghost">
+              + Add a photo
+            </button>
+          )}
+          {showPhotoPicker && (
+            <div className="relative">
+              <PhotoPicker
+                initialQuery={recipe.title}
+                onSelect={handlePhotoSelected}
+                onClose={() => setShowPhotoPicker(false)}
+              />
+              {savingPhoto && <p className="mt-1 text-xs text-ink-light">Saving…</p>}
+            </div>
+          )}
         </div>
       )}
 

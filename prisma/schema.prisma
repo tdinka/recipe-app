@@ -40,6 +40,10 @@ model Recipe {
   title       String
   sourceUrl   String?
   imageUrl    String?
+  // Set when imageUrl came from an Unsplash search — required by Unsplash's
+  // API guidelines to credit the photographer wherever the photo is shown.
+  imageAttributionName String?
+  imageAttributionUrl  String?
   description String?
   servings    Int?
   prepMinutes Int?
