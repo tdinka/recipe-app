@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { RecipeCard, type RecipeCardData } from "@/components/RecipeCard";
 import { CATEGORIES } from "@/lib/constants";
+export const dynamic = "force-dynamic";
 
 export default function RecipesPage() {
   const router = useRouter();

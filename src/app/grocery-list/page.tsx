@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { useSearchParams } from "next/navigation";
 import { format, startOfWeek, addDays } from "date-fns";
+export const dynamic = "force-dynamic";
 
 interface GroceryItem {
   id: string;
