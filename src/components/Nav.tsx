@@ -40,6 +40,9 @@ export function Nav() {
                 </Link>
               );
             })}
+<Link href="/recipes/new" className="btn-primary !px-3 !py-1.5 text-xs">
+  + Add a recipe
+</Link>
             <span className="mx-2 hidden text-xs text-ink-light sm:inline">
               {session.user.householdName}
             </span>
