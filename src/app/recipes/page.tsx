@@ -60,13 +60,14 @@ export default function RecipesPage() {
     setSearchInput("");
   }
 
-  return (
-<div>
-  <h1 className="font-display text-3xl text-ink">Your Recipe Box</h1>
-  <p className="mt-1 text-sm text-ink-light">
-    {recipes ? `${recipes.length} recipe${recipes.length === 1 ? "" : "s"}` : "Loading…"}
-  </p>
-</div>
+    return (
+    <div>
+      <div>
+        <h1 className="font-display text-3xl text-ink">Your Recipe Box</h1>
+        <p className="mt-1 text-sm text-ink-light">
+          {recipes ? `${recipes.length} recipe${recipes.length === 1 ? "" : "s"}` : "Loading…"}
+        </p>
+      </div>
 
       <div className="mt-6 flex flex-wrap gap-3">
         <form
