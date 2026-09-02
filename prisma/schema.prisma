@@ -12,10 +12,12 @@ datasource db {
 }
 
 model Household {
-  id         String   @id @default(cuid())
-  name       String
-  inviteCode String   @unique
-  createdAt  DateTime @default(now())
+  id           String   @id @default(cuid())
+  name         String
+  inviteCode   String   @unique
+  createdAt    DateTime @default(now())
+  shareEnabled Boolean  @default(false)
+  shareToken   String   @unique @default(cuid())
 
   users           User[]
   recipes         Recipe[]

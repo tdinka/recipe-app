@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { ShareSettings } from "@/components/ShareSettings";
 
 interface BackfillResult {
   checked: number;
@@ -87,6 +88,10 @@ export default function SettingsPage() {
           </div>
         </div>
       )}
+
+      <div className="mt-6">
+        <ShareSettings />
+      </div>
 
       <div className="card mt-6 p-6">
         <p className="label">Maintenance</p>
