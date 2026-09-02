@@ -59,17 +59,18 @@ export function ShareSettings() {
       </p>
 
       <div className="mt-4 flex items-center gap-3">
-        <button
+                <button
+          type="button"
           role="switch"
           aria-checked={enabled}
           disabled={busy}
           onClick={() => callApi(enabled ? "disable" : "enable")}
-          className={`relative h-6 w-11 shrink-0 rounded-full transition-colors ${
+          className={`inline-flex h-6 w-11 shrink-0 items-center rounded-full border-0 p-0 transition-colors focus:outline-none ${
             enabled ? "bg-forest" : "bg-linen-300"
           } ${busy ? "opacity-60" : ""}`}
         >
           <span
-            className={`absolute top-0.5 h-5 w-5 rounded-full bg-linen-50 transition-transform ${
+            className={`inline-block h-5 w-5 rounded-full bg-linen-50 shadow-sm transition-transform ${
               enabled ? "translate-x-5" : "translate-x-0.5"
             }`}
           />
