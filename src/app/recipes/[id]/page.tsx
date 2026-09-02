@@ -8,6 +8,7 @@ import { MEAL_TYPES } from "@/lib/constants";
 import { scaleQuantityText, formatScaledNumber } from "@/lib/scale-quantity";
 import type { ParsedIngredient } from "@/lib/ingredient-parser";
 import { PhotoPicker, type SelectedPhoto } from "@/components/PhotoPicker";
+import { proxiedImageUrl } from "@/lib/image-proxy";
 
 interface RecipeDetail {
   id: string;
@@ -130,8 +131,7 @@ export default function RecipeDetailPage() {
       {recipe.imageUrl ? (
         <div className="mt-4">
           <div className="relative h-72 w-full overflow-hidden rounded-card bg-linen-200">
-            <Image src={recipe.imageUrl} alt={recipe.title} fill className="object-cover" unoptimized />
-          </div>
+            <Image src={proxiedImageUrl(recipe.imageUrl)} alt={recipe.title} fill className="object-cover" unoptimized />          </div>
           {recipe.imageAttributionName && recipe.imageAttributionUrl && (
             <p className="mt-1 text-[10px] text-ink-light">
               Photo by{" "}

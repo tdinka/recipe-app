@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Image from "next/image";
 import { scaleQuantityText, formatScaledNumber } from "@/lib/scale-quantity";
+import { proxiedImageUrl } from "@/lib/image-proxy";
 import type { ParsedIngredient } from "@/lib/ingredient-parser";
 
 interface Props {
@@ -45,8 +46,7 @@ export function SharedRecipeView({
       {imageUrl && (
         <div className="mt-4">
           <div className="relative h-72 w-full overflow-hidden rounded-card bg-linen-200">
-            <Image src={imageUrl} alt={title} fill className="object-cover" unoptimized />
-          </div>
+            <Image src={proxiedImageUrl(imageUrl)} alt={title} fill className="object-cover" unoptimized />          </div>
           {imageAttributionName && imageAttributionUrl && (
             <p className="mt-1 text-[10px] text-ink-light">
               Photo by{" "}

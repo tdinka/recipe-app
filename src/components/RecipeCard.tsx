@@ -1,5 +1,6 @@
 import Link from "next/link";
 import Image from "next/image";
+import { proxiedImageUrl } from "@/lib/image-proxy";
 
 export interface RecipeCardData {
   id: string;
@@ -21,8 +22,7 @@ export function RecipeCard({ recipe }: { recipe: RecipeCardData }) {
     <Link href={`/recipes/${recipe.id}`} className="recipe-card card block overflow-hidden">
       <div className="relative h-40 w-full bg-linen-200">
         {recipe.imageUrl ? (
-          <Image src={recipe.imageUrl} alt={recipe.title} fill sizes="300px" className="object-cover" unoptimized />
-        ) : (
+          <Image src={proxiedImageUrl(recipe.imageUrl)} alt={recipe.title} fill sizes="300px" className="object-cover" unoptimized />        ) : (
           <div className="flex h-full items-center justify-center font-display text-3xl italic text-linen-400">
             {recipe.title.slice(0, 1).toUpperCase()}
           </div>

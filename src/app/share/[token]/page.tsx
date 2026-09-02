@@ -1,5 +1,6 @@
 import { db } from "@/lib/db";
 import { notFound } from "next/navigation";
+import { proxiedImageUrl } from "@/lib/image-proxy";
 import Link from "next/link";
 
 export default async function SharedRecipeBox({
@@ -27,8 +28,7 @@ export default async function SharedRecipeBox({
           >
             {r.imageUrl && (
               // eslint-disable-next-line @next/next/no-img-element
-              <img src={r.imageUrl} alt={r.title} className="rounded mb-2 w-full h-32 object-cover" />
-            )}
+              <img src={proxiedImageUrl(r.imageUrl)} alt={r.title} className="rounded mb-2 w-full h-32 object-cover" />            )}
             <h2 className="font-semibold">{r.title}</h2>
           </Link>
         ))}
