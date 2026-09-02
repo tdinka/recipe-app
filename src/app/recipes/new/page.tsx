@@ -6,7 +6,7 @@ import { RecipeForm, emptyRecipeForm, type RecipeFormValues } from "@/components
 import type { ExtractedRecipe } from "@/lib/recipe-extractor";
 import { parseIngredientLine } from "@/lib/ingredient-parser";
 
-type Mode = "choose" | "url" | "image" | "manual" | "review";
+type Mode = "choose" | "url" | "image" | "text" | "manual" | "review";
 
 function fileToDataUrl(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -29,6 +29,10 @@ export default function NewRecipePage() {
   const [imageImporting, setImageImporting] = useState(false);
   const [imageError, setImageError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const [pastedText, setPastedText] = useState("");
+  const [textImporting, setTextImporting] = useState(false);
+  const [textError, setTextError] = useState<string | null>(null);
 
   const [formValues, setFormValues] = useState<RecipeFormValues | null>(null);
 
@@ -119,6 +123,31 @@ export default function NewRecipePage() {
     }
   }
 
+
+  async function handleImportText(e: React.FormEvent) {
+    e.preventDefault();
+    if (!pastedText.trim()) return;
+    setTextImporting(true);
+    setTextError(null);
+    try {
+      const res = await fetch("/api/recipes/extract-text", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text: pastedText }),
+      });
+      const json = await res.json();
+      if (!res.ok) {
+        setTextError(json.error ?? "Couldn't read that text.");
+        return;
+      }
+      populateForm(json.recipe);
+    } catch {
+      setTextError("Couldn't read that text. Try again.");
+    } finally {
+      setTextImporting(false);
+    }
+  }
+
   async function handleSave(values: RecipeFormValues) {
     const payload = {
       title: values.title,
@@ -155,6 +184,8 @@ export default function NewRecipePage() {
     setImagePreview(null);
     setImageError(null);
     if (fileInputRef.current) fileInputRef.current.value = "";
+    setPastedText("");
+    setTextError(null);
     setMode("choose");
   }
 
@@ -163,14 +194,18 @@ export default function NewRecipePage() {
       <h1 className="font-display text-3xl text-ink">Add a recipe</h1>
 
       {mode === "choose" && (
-        <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
+        <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <button onClick={() => setMode("url")} className="card p-5 text-left hover:border-brick/50">
             <p className="font-display text-lg">Paste a link</p>
             <p className="mt-1 text-sm text-ink-light">Best for most recipe sites and food blogs.</p>
           </button>
-          <button onClick={() => setMode("image")} className="card p-5 text-left hover:border-brick/50">
+                    <button onClick={() => setMode("image")} className="card p-5 text-left hover:border-brick/50">
             <p className="font-display text-lg">Upload a screenshot</p>
             <p className="mt-1 text-sm text-ink-light">For sites that won't import, or a photo of a printed/handwritten recipe.</p>
+          </button>
+          <button onClick={() => setMode("text")} className="card p-5 text-left hover:border-brick/50">
+            <p className="font-display text-lg">Paste the text</p>
+            <p className="mt-1 text-sm text-ink-light">For blocked sites, or pages too long to screenshot — copy and paste the recipe text.</p>
           </button>
           <button onClick={() => setMode("manual")} className="card p-5 text-left hover:border-brick/50">
             <p className="font-display text-lg">Enter by hand</p>
@@ -235,6 +270,27 @@ export default function NewRecipePage() {
             Requires an Anthropic API key configured on the server (see README).
           </p>
         </div>
+      )}
+
+      {mode === "text" && (
+        <form onSubmit={handleImportText} className="card mt-6 space-y-3 p-6">
+          <button type="button" onClick={startOver} className="text-xs text-ink-light hover:underline">← Choose a different method</button>
+          <label className="label" htmlFor="pastedText">Paste the recipe text</label>
+          <p className="text-xs text-ink-light">
+            Select and copy the recipe from the page — title, ingredients, and instructions. Stray text like ads or comments is fine to include; it'll be ignored.
+          </p>
+          <textarea
+            id="pastedText"
+            className="input min-h-[240px] font-mono text-xs"
+            placeholder="Paste the recipe text here…"
+            value={pastedText}
+            onChange={(e) => setPastedText(e.target.value)}
+          />
+          {textError && <p className="text-sm text-brick">{textError}</p>}
+          <button type="submit" disabled={!pastedText.trim() || textImporting} className="btn-primary">
+            {textImporting ? "Reading text…" : "Extract recipe"}
+          </button>
+        </form>
       )}
 
       {mode === "manual" && (
