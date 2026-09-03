@@ -12,6 +12,14 @@ interface BackfillResult {
   remainingCount: number;
 }
 
+
+interface CategoryBackfillResult {
+  checked: number;
+  updated: number;
+  skipped: number;
+  remainingCount: number;
+}
+
 export default function SettingsPage() {
   const [household, setHousehold] = useState<{ name: string; inviteCode: string } | null>(null);
   const [copied, setCopied] = useState(false);
@@ -19,6 +27,9 @@ export default function SettingsPage() {
 
   const [backfillRunning, setBackfillRunning] = useState(false);
   const [backfillResults, setBackfillResults] = useState<BackfillResult[]>([]);
+
+  const [categoryBackfillRunning, setCategoryBackfillRunning] = useState(false);
+  const [categoryBackfillResults, setCategoryBackfillResults] = useState<CategoryBackfillResult[]>([]);
 
   useEffect(() => {
     fetch("/api/household").then(async (res) => {
@@ -49,6 +60,18 @@ export default function SettingsPage() {
     }
   }
 
+
+  async function handleCategoryBackfill() {
+    setCategoryBackfillRunning(true);
+    try {
+      const res = await fetch("/api/recipes/backfill-categories", { method: "POST" });
+      const json: CategoryBackfillResult = await res.json();
+      setCategoryBackfillResults((prev) => [...prev, json]);
+    } finally {
+      setCategoryBackfillRunning(false);
+    }
+  }
+
   const totals = backfillResults.reduce(
     (acc, r) => ({
       checked: acc.checked + r.checked,
@@ -62,6 +85,14 @@ export default function SettingsPage() {
   const lastResult = backfillResults[backfillResults.length - 1];
   const hasMore = lastResult ? lastResult.remainingCount > 0 : false;
   const hasRunAtLeastOnce = backfillResults.length > 0;
+
+  const categoryTotals = categoryBackfillResults.reduce(
+    (acc, r) => ({ checked: acc.checked + r.checked, updated: acc.updated + r.updated, skipped: acc.skipped + r.skipped }),
+    { checked: 0, updated: 0, skipped: 0 }
+  );
+  const lastCategoryResult = categoryBackfillResults[categoryBackfillResults.length - 1];
+  const categoryHasMore = lastCategoryResult ? lastCategoryResult.remainingCount > 0 : false;
+  const categoryHasRunAtLeastOnce = categoryBackfillResults.length > 0;
 
   return (
     <div className="mx-auto max-w-2xl">
@@ -129,7 +160,43 @@ export default function SettingsPage() {
                 {lastResult.remainingCount} more recipe{lastResult.remainingCount === 1 ? "" : "s"} left to check — click "Check more" to continue.
               </p>
             )}
-            {!hasMore && (
+                        {!hasMore && (
+              <p className="mt-2 font-semibold text-forest-dark">All caught up — nothing left to check.</p>
+            )}
+          </div>
+        )}
+      </div>
+
+      <div className="card mt-6 p-6">
+        <p className="label">Maintenance</p>
+        <p className="font-display text-xl text-ink">Clean up categories &amp; tags</p>
+        <p className="mt-1 text-sm text-ink-light">
+          Some sites publish messy category data (e.g. "Dinner, Main Course, Poultry" all jammed into one field).
+          This finds recipes with a category that doesn't match your standard list, picks the right one, and turns
+          any leftover terms into proper, editable tags. Safe to run more than once.
+        </p>
+
+        <button onClick={handleCategoryBackfill} disabled={categoryBackfillRunning} className="btn-primary mt-4">
+          {categoryBackfillRunning ? "Checking recipes…" : categoryHasRunAtLeastOnce ? "Check more" : "Run cleanup"}
+        </button>
+
+        {categoryHasRunAtLeastOnce && (
+          <div className="mt-4 rounded-md bg-linen-100 p-4 text-sm">
+            <p>
+              Checked <strong>{categoryTotals.checked}</strong> recipe{categoryTotals.checked === 1 ? "" : "s"} —{" "}
+              <strong>{categoryTotals.updated}</strong> cleaned up.
+            </p>
+            {categoryTotals.skipped > 0 && (
+              <p className="mt-1 text-ink-light">
+                {categoryTotals.skipped} had a category we couldn't match to anything useful and were left as-is.
+              </p>
+            )}
+            {categoryHasMore && (
+              <p className="mt-2 text-ink-light">
+                {lastCategoryResult.remainingCount} more recipe{lastCategoryResult.remainingCount === 1 ? "" : "s"} left to check — click "Check more" to continue.
+              </p>
+            )}
+            {!categoryHasMore && (
               <p className="mt-2 font-semibold text-forest-dark">All caught up — nothing left to check.</p>
             )}
           </div>

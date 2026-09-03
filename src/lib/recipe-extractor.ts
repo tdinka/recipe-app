@@ -1,6 +1,7 @@
 import * as cheerio from "cheerio";
 import { parseDurationToMinutes } from "@/lib/duration";
 import { parseIngredientLine, type ParsedIngredient } from "@/lib/ingredient-parser";
+import { CATEGORIES } from "@/lib/constants";
 
 export interface ExtractedRecipe {
   title: string;
@@ -14,6 +15,7 @@ export interface ExtractedRecipe {
   totalMinutes: number | null;
   category: string | null;
   cuisine: string | null;
+  tags: string[];
   ingredients: ParsedIngredient[];
   instructions: string[];
 }
@@ -29,6 +31,36 @@ function textOf(value: unknown): string | null {
     return textOf(obj["@value"] ?? obj.name ?? obj.text ?? null);
   }
   return null;
+}
+
+
+// recipeCategory is inconsistently published across sites — sometimes a single
+// clean value ("Dinner"), sometimes a comma-separated pile of terms ("Dinner,
+// Main Course, Poultry"), sometimes an actual array. This splits everything
+// into individual terms, matches the first one found in our fixed CATEGORIES
+// list to use as the real category, and returns any leftover terms as tags.
+export function categoryAndTagsOf(value: unknown): { category: string | null; tags: string[] } {  let terms: string[] = [];
+  if (typeof value === "string") {
+    terms = value.split(",").map((t) => t.trim()).filter(Boolean);
+  } else if (Array.isArray(value)) {
+    terms = value.flatMap((entry) => {
+      const text = textOf(entry);
+      return text ? text.split(",").map((t) => t.trim()).filter(Boolean) : [];
+    });
+  }
+
+  let category: string | null = null;
+  const leftoverTags: string[] = [];
+  for (const term of terms) {
+    const match = CATEGORIES.find((c) => c.toLowerCase() === term.toLowerCase());
+    if (match && !category) {
+      category = match;
+    } else {
+      leftoverTags.push(term);
+    }
+  }
+
+  return { category, tags: leftoverTags };
 }
 
 function imageOf(value: unknown): string | null {
@@ -189,6 +221,7 @@ export async function extractRecipeFromUrl(url: string): Promise<ExtractedRecipe
       totalMinutes: parseDurationToMinutes(findMicrodataDuration($, "totalTime")),
       category: null,
       cuisine: null,
+      tags: [],
       ingredients: [],
       instructions: [],
     };
@@ -205,7 +238,7 @@ export async function extractRecipeFromUrl(url: string): Promise<ExtractedRecipe
     prepMinutes: parseDurationToMinutes(node.prepTime) ?? parseDurationToMinutes(findMicrodataDuration($, "prepTime")),
     cookMinutes: parseDurationToMinutes(node.cookTime) ?? parseDurationToMinutes(findMicrodataDuration($, "cookTime")),
     totalMinutes: parseDurationToMinutes(node.totalTime) ?? parseDurationToMinutes(findMicrodataDuration($, "totalTime")),
-    category: textOf(node.recipeCategory),
+        ...categoryAndTagsOf(node.recipeCategory),
     cuisine: textOf(node.recipeCuisine),
     ingredients: ingredientsOf(node.recipeIngredient),
     instructions: instructionsOf(node.recipeInstructions),

@@ -36,10 +36,10 @@ export default function NewRecipePage() {
 
   const [formValues, setFormValues] = useState<RecipeFormValues | null>(null);
 
-  function populateForm(recipe: ExtractedRecipe | {
+    function populateForm(recipe: ExtractedRecipe | {
     title: string; sourceUrl: string | null; imageUrl: string | null; description: string | null;
     servings: number | null; prepMinutes: number | null; cookMinutes: number | null; totalMinutes: number | null;
-    category: string | null; cuisine: string | null;
+    category: string | null; cuisine: string | null; tags?: string[];
     ingredients: { raw: string }[]; instructions: string[];
   }) {
     setFormValues({
@@ -57,7 +57,7 @@ export default function NewRecipePage() {
       cuisine: recipe.cuisine,
       ingredientsText: recipe.ingredients.map((i) => i.raw).join("\n"),
       instructionsText: recipe.instructions.join("\n"),
-      tagsText: "",
+      tagsText: (recipe.tags ?? []).join(", "),
     });
     setMode("review");
   }
