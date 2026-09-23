@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { ShareSettings } from "@/components/ShareSettings";
+import { ListLinkSettings } from "@/components/ListLinkSettings";
 
 interface BackfillResult {
   checked: number;
@@ -122,6 +123,9 @@ export default function SettingsPage() {
 
       <div className="mt-6">
         <ShareSettings />
+      </div>
+      <div className="mt-6">
+        <ListLinkSettings />
       </div>
 
       <div className="card mt-6 p-6">

@@ -18,12 +18,15 @@ model Household {
   createdAt    DateTime @default(now())
   shareEnabled Boolean  @default(false)
   shareToken   String   @unique @default(cuid())
+  // Secret link for the family grocery list (/list/[token]). Created the first time it's needed.
+  listToken    String?  @unique
 
   users           User[]
   recipes         Recipe[]
   tags            Tag[]
   mealPlanEntries MealPlanEntry[]
   groceryItems    GroceryItem[]
+  archivedItems   ArchivedGroceryItem[]
 }
 
 model User {
@@ -123,6 +126,10 @@ model GroceryItem {
   checked   Boolean @default(false)
   // "manual" for hand-added items, or the recipeId that generated this item
   source    String  @default("manual")
+  // Grocery section, e.g. "Produce", "Dairy & Eggs". Filled in automatically by Claude.
+  section   String  @default("Other")
+  // Where to buy it: "vons" (default), "traderjoes", "costco", or "amazon"
+  store     String  @default("vons")
 
   household   Household @relation(fields: [householdId], references: [id], onDelete: Cascade)
   householdId String
@@ -130,4 +137,22 @@ model GroceryItem {
   createdAt DateTime @default(now())
 
   @@index([householdId])
+}
+
+model ArchivedGroceryItem {
+  id           String   @id @default(cuid())
+  name         String
+  // Lowercased, trimmed name so "Eggs" and "eggs " count as the same item
+  nameKey      String
+  quantity     String?
+  section      String   @default("Other")
+  store        String   @default("vons")
+  timesBought  Int      @default(1)
+  lastBoughtAt DateTime @default(now())
+
+  household   Household @relation(fields: [householdId], references: [id], onDelete: Cascade)
+  householdId String
+
+  @@unique([householdId, nameKey])
+  @@index([householdId, timesBought])
 }
