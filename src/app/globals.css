@@ -5,9 +5,14 @@
 @layer base {
   html {
     @apply bg-linen-50 text-ink;
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
   }
   body {
     @apply font-body antialiased;
+    padding-left: env(safe-area-inset-left);
+    padding-right: env(safe-area-inset-right);
+    -webkit-tap-highlight-color: transparent;
   }
   h1, h2, h3, h4 {
     @apply font-display;
@@ -16,7 +21,7 @@
 
 @layer components {
   .btn {
-    @apply inline-flex items-center justify-center gap-2 rounded-card px-4 py-2 text-sm font-semibold transition-colors;
+    @apply inline-flex min-h-[44px] items-center justify-center gap-2 rounded-card px-4 py-2 text-sm font-semibold transition-colors sm:min-h-0;
   }
   .btn-primary {
     @apply btn bg-brick text-linen-50 hover:bg-brick-dark;
@@ -31,7 +36,7 @@
     @apply rounded-card bg-white/70 shadow-card border border-linen-300;
   }
   .input {
-    @apply w-full rounded-md border border-linen-400 bg-white px-3 py-2 text-sm text-ink placeholder:text-ink-light/60 focus:outline-none focus:ring-2 focus:ring-brick/40 focus:border-brick;
+    @apply w-full rounded-md border border-linen-400 bg-white px-3 py-2 text-base sm:text-sm text-ink placeholder:text-ink-light/60 focus:outline-none focus:ring-2 focus:ring-brick/40 focus:border-brick;
   }
   .label {
     @apply block text-xs font-semibold uppercase tracking-wide text-ink-light mb-1;
@@ -52,8 +57,10 @@
   position: relative;
   transition: transform 0.15s ease, box-shadow 0.15s ease;
 }
-.recipe-card:hover {
-  transform: rotate(-0.4deg) translateY(-2px);
+@media (hover: hover) {
+  .recipe-card:hover {
+    transform: rotate(-0.4deg) translateY(-2px);
+  }
 }
 .recipe-card::before {
   content: "";
