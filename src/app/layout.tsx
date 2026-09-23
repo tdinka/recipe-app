@@ -16,6 +16,9 @@ const mono = JetBrains_Mono({ subsets: ["latin"], variable: "--font-mono", weigh
 export const metadata: Metadata = {
   title: "Family Recipe Box",
   description: "Collect recipes from the web, plan meals, and build grocery lists — together.",
+  manifest: "/manifest.webmanifest",
+  icons: { icon: "/app-icon/box/192", apple: "/app-icon/box/180" },
+  appleWebApp: { capable: true, title: "Recipe Box", statusBarStyle: "default" },
 };
 
 export const viewport: Viewport = {

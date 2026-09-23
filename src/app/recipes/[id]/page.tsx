@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useParams, useRouter } from "next/navigation";
@@ -29,6 +29,30 @@ interface RecipeDetail {
   tags: string[];
 }
 
+// Screen Wake Lock: keeps the phone from dimming while cooking.
+type WakeLockLike = { release: () => Promise<void> };
+type NavigatorWithWakeLock = Navigator & {
+  wakeLock?: { request: (type: "screen") => Promise<WakeLockLike> };
+};
+
+function toggleIn(set: Set<number>, i: number): Set<number> {
+  const next = new Set(set);
+  if (next.has(i)) {
+    next.delete(i);
+  } else {
+    next.add(i);
+  }
+  return next;
+}
+
+function CheckIcon() {
+  return (
+    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <polyline points="20 6 9 17 4 12" />
+    </svg>
+  );
+}
+
 export default function RecipeDetailPage() {
   const params = useParams<{ id: string }>();
   const router = useRouter();
@@ -44,6 +68,52 @@ export default function RecipeDetailPage() {
 
   const [showPhotoPicker, setShowPhotoPicker] = useState(false);
   const [savingPhoto, setSavingPhoto] = useState(false);
+
+  // Cook mode + tap-to-check
+  const [cookMode, setCookMode] = useState(false);
+  const [awake, setAwake] = useState<"on" | "unsupported" | null>(null);
+  const wakeLockRef = useRef<WakeLockLike | null>(null);
+  const [checkedIngredients, setCheckedIngredients] = useState<Set<number>>(new Set());
+  const [doneSteps, setDoneSteps] = useState<Set<number>>(new Set());
+
+  useEffect(() => {
+    if (!cookMode) return;
+    const wakeLock = (navigator as NavigatorWithWakeLock).wakeLock;
+    if (!wakeLock) {
+      setAwake("unsupported");
+      return;
+    }
+    let cancelled = false;
+
+    async function acquire() {
+      try {
+        const lock = await wakeLock!.request("screen");
+        if (cancelled) {
+          lock.release().catch(() => {});
+          return;
+        }
+        wakeLockRef.current = lock;
+        setAwake("on");
+      } catch {
+        setAwake("unsupported");
+      }
+    }
+
+    // Phones drop the lock when you switch apps, so grab it again on return.
+    function onVisibilityChange() {
+      if (document.visibilityState === "visible") acquire();
+    }
+
+    acquire();
+    document.addEventListener("visibilitychange", onVisibilityChange);
+    return () => {
+      cancelled = true;
+      document.removeEventListener("visibilitychange", onVisibilityChange);
+      wakeLockRef.current?.release().catch(() => {});
+      wakeLockRef.current = null;
+      setAwake(null);
+    };
+  }, [cookMode]);
 
   async function handlePhotoSelected(photo: SelectedPhoto) {
     if (!recipe) return;
@@ -115,11 +185,14 @@ export default function RecipeDetailPage() {
   // Some sites only publish a single combined time (no prep/cook split) — show that instead.
   const displayTotal = totalTime > 0 ? totalTime : recipe.totalMinutes;
 
+  const listText = cookMode ? "text-lg" : "text-base sm:text-sm";
+  const anyChecked = checkedIngredients.size > 0 || doneSteps.size > 0;
+
   return (
     <div className="mx-auto max-w-3xl">
       <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <h1 className="font-display text-3xl text-ink">{recipe.title}</h1>
+        <div className="min-w-0">
+          <h1 className="break-words font-display text-2xl text-ink sm:text-3xl">{recipe.title}</h1>
           {recipe.description && <p className="mt-2 text-ink-light">{recipe.description}</p>}
         </div>
         <div className="flex gap-2">
@@ -130,8 +203,9 @@ export default function RecipeDetailPage() {
 
       {recipe.imageUrl ? (
         <div className="mt-4">
-          <div className="relative h-72 w-full overflow-hidden rounded-card bg-linen-200">
-            <Image src={proxiedImageUrl(recipe.imageUrl)} alt={recipe.title} fill className="object-cover" unoptimized />          </div>
+          <div className="relative h-56 w-full overflow-hidden rounded-card bg-linen-200 sm:h-72">
+            <Image src={proxiedImageUrl(recipe.imageUrl)} alt={recipe.title} fill className="object-cover" unoptimized />
+          </div>
           {recipe.imageAttributionName && recipe.imageAttributionUrl && (
             <p className="mt-1 text-[10px] text-ink-light">
               Photo by{" "}
@@ -162,30 +236,51 @@ export default function RecipeDetailPage() {
         </div>
       )}
 
-      <div className="mt-4 flex flex-wrap gap-2">
+      <div className="mt-4 flex flex-wrap items-center gap-x-3 gap-y-2">
         {recipe.category && <span className="category-pill">{recipe.category}</span>}
         {recipe.cuisine && <span className="text-sm text-ink-light">{recipe.cuisine}</span>}
         {recipe.servings && <span className="measure text-sm">Serves {formatScaledNumber(recipe.servings * scale)}</span>}
         {displayTotal ? <span className="measure text-sm">{displayTotal} min total</span> : null}
-        {recipe.tags.map((t) => <span key={t} className="tag-pill">{t}</span>)}
       </div>
+      {recipe.tags.length > 0 && (
+        <div className="mt-2 flex flex-wrap gap-2">
+          {recipe.tags.map((t) => <span key={t} className="tag-pill">{t}</span>)}
+        </div>
+      )}
 
       {recipe.sourceUrl && (
-        <a href={recipe.sourceUrl} target="_blank" rel="noreferrer" className="mt-2 inline-block text-sm text-forest hover:underline">
+        <a href={recipe.sourceUrl} target="_blank" rel="noreferrer" className="mt-3 inline-block text-sm text-forest hover:underline">
           View original source ↗
         </a>
       )}
 
+      <div className="mt-5 flex flex-wrap items-center gap-3">
+        <button
+          type="button"
+          onClick={() => setCookMode((c) => !c)}
+          className={`${cookMode ? "btn-ghost" : "btn-secondary"} w-full sm:w-auto`}
+        >
+          {cookMode ? "Done cooking" : "🍳 Start cooking"}
+        </button>
+        {cookMode && (
+          <p className="text-xs text-ink-light">
+            {awake === "on" && "Your screen will stay on. "}
+            {awake === "unsupported" && "This browser can't keep the screen on, so give it a tap now and then. "}
+            Tap ingredients and steps to check them off.
+          </p>
+        )}
+      </div>
+
       <div className="mt-8 grid grid-cols-1 gap-8 sm:grid-cols-3">
         <div className="sm:col-span-1">
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between gap-2">
             <h2 className="font-display text-xl text-ink">Ingredients</h2>
             <div className="flex gap-1">
               {SCALE_OPTIONS.map((opt) => (
                 <button
                   key={opt}
                   onClick={() => setScale(opt)}
-                  className={`rounded-md px-2 py-1 text-xs font-semibold transition-colors ${
+                  className={`min-w-[40px] rounded-md px-2 py-2 text-sm font-semibold transition-colors sm:min-w-0 sm:py-1 sm:text-xs ${
                     scale === opt ? "bg-forest text-linen-50" : "bg-linen-100 text-ink-light hover:bg-linen-200"
                   }`}
                 >
@@ -194,14 +289,34 @@ export default function RecipeDetailPage() {
               ))}
             </div>
           </div>
-          <ul className="mt-3 space-y-2 text-sm">
-            {recipe.ingredients.map((ing, i) => (
-              <li key={i} className="border-b border-linen-300 pb-2">
-                {ing.quantity && <span className="measure">{scale === 1 ? ing.quantity : scaleQuantityText(ing.quantity, scale)} </span>}
-                {ing.unit && <span className="measure">{ing.unit} </span>}
-                {ing.item}
-              </li>
-            ))}
+          <ul className={`mt-3 ${listText}`}>
+            {recipe.ingredients.map((ing, i) => {
+              const checked = checkedIngredients.has(i);
+              return (
+                <li key={i} className="border-b border-linen-300">
+                  <button
+                    type="button"
+                    onClick={() => setCheckedIngredients((s) => toggleIn(s, i))}
+                    aria-pressed={checked}
+                    className={`flex w-full items-start gap-3 py-2 text-left transition-opacity ${checked ? "opacity-50" : ""}`}
+                  >
+                    <span
+                      aria-hidden="true"
+                      className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border ${
+                        checked ? "border-forest bg-forest text-linen-50" : "border-linen-400 bg-white"
+                      }`}
+                    >
+                      {checked && <CheckIcon />}
+                    </span>
+                    <span className={checked ? "line-through" : ""}>
+                      {ing.quantity && <span className="measure">{scale === 1 ? ing.quantity : scaleQuantityText(ing.quantity, scale)} </span>}
+                      {ing.unit && <span className="measure">{ing.unit} </span>}
+                      {ing.item}
+                    </span>
+                  </button>
+                </li>
+              );
+            })}
             {recipe.ingredients.length === 0 && <li className="text-ink-light">No ingredients listed.</li>}
           </ul>
           {scale !== 1 && (
@@ -213,21 +328,40 @@ export default function RecipeDetailPage() {
 
         <div className="sm:col-span-2">
           <h2 className="font-display text-xl text-ink">Instructions</h2>
-          <ol className="mt-3 space-y-4 text-sm">
-            {recipe.instructions.map((step, i) => (
-              <li key={i} className="flex gap-3">
-                <span className="font-display text-brick">{i + 1}.</span>
-                <span>{step}</span>
-              </li>
-            ))}
+          <ol className={`mt-3 space-y-4 ${listText}`}>
+            {recipe.instructions.map((step, i) => {
+              const done = doneSteps.has(i);
+              return (
+                <li key={i}>
+                  <button
+                    type="button"
+                    onClick={() => setDoneSteps((s) => toggleIn(s, i))}
+                    aria-pressed={done}
+                    className={`flex w-full gap-3 text-left transition-opacity ${done ? "opacity-40" : ""}`}
+                  >
+                    <span className="w-6 shrink-0 font-display text-brick">{done ? "✓" : `${i + 1}.`}</span>
+                    <span>{step}</span>
+                  </button>
+                </li>
+              );
+            })}
             {recipe.instructions.length === 0 && <li className="text-ink-light">No instructions listed.</li>}
           </ol>
+          {anyChecked && (
+            <button
+              type="button"
+              onClick={() => { setCheckedIngredients(new Set()); setDoneSteps(new Set()); }}
+              className="mt-4 text-sm text-forest underline"
+            >
+              Clear checkmarks
+            </button>
+          )}
         </div>
       </div>
 
       <div className="card mt-10 p-5">
         <h2 className="font-display text-lg text-ink">Add to meal plan</h2>
-        <form onSubmit={handleAddToPlan} className="mt-3 flex flex-wrap items-end gap-3">
+        <form onSubmit={handleAddToPlan} className="mt-3 grid grid-cols-2 gap-3 sm:flex sm:flex-wrap sm:items-end">
           <div>
             <label className="label">Date</label>
             <input type="date" className="input" value={planDate} onChange={(e) => setPlanDate(e.target.value)} />
@@ -238,10 +372,10 @@ export default function RecipeDetailPage() {
               {MEAL_TYPES.map((m) => <option key={m} value={m}>{m}</option>)}
             </select>
           </div>
-          <button type="submit" className="btn-secondary">
+          <button type="submit" className="btn-secondary col-span-2 sm:col-auto">
             Add{scale !== 1 ? ` (${scale === 0.5 ? "½×" : `${scale}×`})` : ""}
           </button>
-          {planStatus && <span className="text-sm text-ink-light">{planStatus}</span>}
+          {planStatus && <span className="col-span-2 text-sm text-ink-light sm:col-auto">{planStatus}</span>}
         </form>
         {scale !== 1 && (
           <p className="mt-2 text-xs text-ink-light">

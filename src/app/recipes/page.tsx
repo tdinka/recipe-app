@@ -60,37 +60,40 @@ export default function RecipesPage() {
     setSearchInput("");
   }
 
-    return (
+  return (
     <div>
       <div>
-        <h1 className="font-display text-3xl text-ink">Your Recipe Box</h1>
+        <h1 className="font-display text-2xl text-ink sm:text-3xl">Your Recipe Box</h1>
         <p className="mt-1 text-sm text-ink-light">
           {recipes ? `${recipes.length} recipe${recipes.length === 1 ? "" : "s"}` : "Loading…"}
         </p>
       </div>
 
-      <div className="mt-6 flex flex-wrap gap-3">
+      {/* Phones: search on its own row, filters side by side below. Wider screens: one row. */}
+      <div className="mt-5 grid grid-cols-2 gap-2 sm:mt-6 sm:flex sm:flex-wrap sm:gap-3">
         <form
           onSubmit={(e) => { e.preventDefault(); updateParam("q", searchInput); }}
-          className="flex-1 min-w-[200px]"
+          className="col-span-2 sm:min-w-[200px] sm:flex-1"
         >
           <input
+            type="search"
+            enterKeyHint="search"
             className="input"
             placeholder="Search your recipes…"
             value={searchInput}
             onChange={(e) => setSearchInput(e.target.value)}
           />
         </form>
-        <select className="input w-auto" value={category} onChange={(e) => updateParam("category", e.target.value)}>
+        <select className="input sm:w-auto" value={category} onChange={(e) => updateParam("category", e.target.value)}>
           <option value="">All categories</option>
           {CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
         </select>
-        <select className="input w-auto" value={tag} onChange={(e) => updateParam("tag", e.target.value)}>
+        <select className="input sm:w-auto" value={tag} onChange={(e) => updateParam("tag", e.target.value)}>
           <option value="">All tags</option>
           {tags.map((t) => <option key={t} value={t}>{t}</option>)}
         </select>
         {(category || tag || q) && (
-          <button className="btn-ghost" onClick={clearFilters}>Clear filters</button>
+          <button className="btn-ghost col-span-2 sm:col-auto" onClick={clearFilters}>Clear filters</button>
         )}
       </div>
 
@@ -104,7 +107,7 @@ export default function RecipesPage() {
         </div>
       )}
 
-      <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="mt-5 grid grid-cols-2 gap-3 sm:mt-6 sm:gap-4 lg:grid-cols-3">
         {recipes?.map((r) => <RecipeCard key={r.id} recipe={r} />)}
       </div>
     </div>
