@@ -35,6 +35,7 @@ export function GroceryList({ token, householdName }: { token: string; household
   const [items, setItems] = useState<Item[]>([]);
   const [loaded, setLoaded] = useState(false);
   const [view, setView] = useState<View>("all");
+  const [allAddStore, setAllAddStore] = useState<StoreId>(DEFAULT_STORE);
   const [name, setName] = useState("");
   const [qty, setQty] = useState("");
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -137,7 +138,7 @@ export function GroceryList({ token, householdName }: { token: string; household
   }
 
   // In the "All" view, new items go to the default store (Vons).
-  const addStore: StoreId = view === "all" ? DEFAULT_STORE : view;
+  const addStore: StoreId = view === "all" ? allAddStore : view;
 
   function handleAdd(e: React.FormEvent) {
     e.preventDefault();
@@ -261,6 +262,27 @@ export function GroceryList({ token, householdName }: { token: string; household
           Add
         </button>
       </form>
+
+      {view === "all" && (
+        <div className="mt-2 flex flex-wrap items-center gap-1.5 text-xs">
+          <span className="text-ink-light">Add to:</span>
+          {STORE_IDS.map((id) => (
+            <button
+              key={id}
+              type="button"
+              onClick={() => {
+                setAllAddStore(id);
+                nameInput.current?.focus();
+              }}
+              className={`rounded-full px-3 py-1 font-medium ${
+                allAddStore === id ? "bg-forest text-white" : "bg-linen-100 text-ink"
+              }`}
+            >
+              {STORE_LABELS[id]}
+            </button>
+          ))}
+        </div>
+      )}
 
       {error && <p className="mt-3 text-sm text-brick">{error}</p>}
 
