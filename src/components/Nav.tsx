@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import { useSession, signOut } from "next-auth/react";
 
@@ -71,6 +72,32 @@ export function Nav() {
   const { data: session, status } = useSession();
   const pathname = usePathname();
 
+  // Hide the phone tab bar while the keyboard is open, so it doesn't cover what you're typing.
+  const [typing, setTyping] = useState(false);
+  useEffect(() => {
+    const NON_TEXT = ["checkbox", "radio", "button", "submit", "reset", "range", "file", "color"];
+    function isTextField(el: EventTarget | null) {
+      if (!(el instanceof HTMLElement)) return false;
+      if (el.isContentEditable) return true;
+      if (el.tagName === "TEXTAREA" || el.tagName === "SELECT") return true;
+      if (el.tagName === "INPUT") return !NON_TEXT.includes((el as HTMLInputElement).type);
+      return false;
+    }
+    function onFocusIn(e: FocusEvent) {
+      if (isTextField(e.target)) setTyping(true);
+    }
+    function onFocusOut() {
+      setTyping(false);
+    }
+    document.addEventListener("focusin", onFocusIn);
+    document.addEventListener("focusout", onFocusOut);
+    return () => {
+      document.removeEventListener("focusin", onFocusIn);
+      document.removeEventListener("focusout", onFocusOut);
+    };
+  }, []);
+
+
   if (pathname === "/login" || pathname === "/register") return null;
   // The family's shared grocery list link is a full-screen, no-login page.
   if (pathname?.startsWith("/list/")) return null;
@@ -130,7 +157,7 @@ export function Nav() {
       {signedIn && (
         <nav
           aria-label="Main"
-          className="fixed inset-x-0 bottom-0 z-40 border-t border-linen-300 bg-linen-50/95 backdrop-blur md:hidden"
+          className={`fixed inset-x-0 bottom-0 z-40 border-t border-linen-300 bg-linen-50/95 backdrop-blur md:hidden ${typing ? "hidden" : ""}`}
           style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
         >
           <div className="grid grid-cols-4">
