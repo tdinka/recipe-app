@@ -135,6 +135,8 @@ model GroceryItem {
   householdId String
 
   createdAt DateTime @default(now())
+  // When this item was included in a grocery alert. Empty = not announced yet.
+  notifiedAt DateTime?
 
   @@index([householdId])
 }
@@ -155,4 +157,13 @@ model ArchivedGroceryItem {
 
   @@unique([householdId, nameKey])
   @@index([householdId, timesBought])
+}
+
+// Phones signed up for grocery alerts.
+model PushSubscription {
+  id        String   @id @default(cuid())
+  endpoint  String   @unique
+  p256dh    String
+  auth      String
+  createdAt DateTime @default(now())
 }

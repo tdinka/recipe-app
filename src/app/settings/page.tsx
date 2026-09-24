@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { ShareSettings } from "@/components/ShareSettings";
 import { ListLinkSettings } from "@/components/ListLinkSettings";
+import PushAlertsButton from "./PushAlertsButton";
 
 interface BackfillResult {
   checked: number;
@@ -126,6 +127,9 @@ export default function SettingsPage() {
       </div>
       <div className="mt-6">
         <ListLinkSettings />
+      </div>
+      <div className="mt-6">
+        <PushAlertsButton />
       </div>
 
       <div className="card mt-6 p-6">
