@@ -143,6 +143,14 @@ function containerName(text: string): string | null {
   return name.charAt(0).toUpperCase() + name.slice(1);
 }
 
+function cleanPart(part: string): string {
+  let name = part.replace(/^[\d\s/.½¼¾⅓⅔⅛-]+/, " ").trim();
+  name = name.replace(LEADING_AMOUNT, "");
+  name = name.replace(/^(juice|zest) of\s+(\d+\s+|an?\s+)?/, ""); // "juice of 1 lemon" → "lemon"
+  name = name.replace(PREP_PATTERN, " ");
+  return name.replace(/[^a-z0-9'&\s-]/g, " ").replace(/\s+/g, " ").replace(/^[\s-]+|[\s-]+$/g, "");
+}
+
 // Turns a recipe ingredient into a plain grocery item name:
 // "all-purpose flour, sifted" → "Flour", "a pinch of salt" → "Salt".
 export function genericIngredientName(ingredient: string): string {
@@ -150,15 +158,11 @@ export function genericIngredientName(ingredient: string): string {
   const container = containerName(lower);
   if (container) return container;
 
-  let name = lower
+  // Use the first part that names a food: "salted, roasted peanuts" skips "salted".
+  const parts = lower
     .replace(/\([^)]*\)/g, " ") // "(14 oz)", "(about 2 cups)"
-    .split(/,|;|\bor\b|\bfor\b|\bto taste\b|\bplus\b/)[0] // drop "…, chopped", "… or water"
-    .replace(/^[\d\s/.½¼¾⅓⅔⅛-]+/, " ")
-    .trim();
-  name = name.replace(LEADING_AMOUNT, "");
-  name = name.replace(/^(juice|zest) of\s+(\d+\s+|an?\s+)?/, ""); // "juice of 1 lemon" → "lemon"
-  name = name.replace(PREP_PATTERN, " ");
-  name = name.replace(/[^a-z0-9'&\s-]/g, " ").replace(/\s+/g, " ").replace(/^[\s-]+|[\s-]+$/g, "");
+    .split(/,|;|\bor\b|\bfor\b|\bto taste\b|\bplus\b/); // "…, chopped", "… or water"
+  const name = parts.map(cleanPart).find(Boolean) ?? "";
 
   const fallback = ingredient.split(",")[0].trim();
   const result = name || fallback;
