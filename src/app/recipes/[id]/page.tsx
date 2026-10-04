@@ -76,6 +76,10 @@ export default function RecipeDetailPage() {
   const [checkedIngredients, setCheckedIngredients] = useState<Set<number>>(new Set());
   const [doneSteps, setDoneSteps] = useState<Set<number>>(new Set());
 
+  // Ingredients sent to the grocery list from this page, by row number.
+  const [listAdds, setListAdds] = useState<Map<number, "adding" | "added" | "error">>(new Map());
+  const [listMessage, setListMessage] = useState<string | null>(null);
+
   useEffect(() => {
     if (!cookMode) return;
     const wakeLock = (navigator as NavigatorWithWakeLock).wakeLock;
@@ -161,6 +165,25 @@ export default function RecipeDetailPage() {
     if (!confirm("Delete this recipe? This can't be undone.")) return;
     await fetch(`/api/recipes/${params.id}`, { method: "DELETE" });
     router.push("/recipes");
+  }
+
+  async function handleAddToList(i: number, ing: ParsedIngredient) {
+    setListAdds((m) => new Map(m).set(i, "adding"));
+    try {
+      const res = await fetch("/api/grocery-list/add-ingredient", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        // Include the unit so containers survive: "cans" + "black beans" → "Can of black beans".
+        body: JSON.stringify({ ingredient: [ing.unit, ing.item].filter(Boolean).join(" ") || ing.raw }),
+      });
+      if (!res.ok) throw new Error("add failed");
+      const { item, merged } = await res.json();
+      setListAdds((m) => new Map(m).set(i, "added"));
+      setListMessage(merged ? `"${item.name}" is already on the grocery list.` : `Added "${item.name}" to the grocery list.`);
+    } catch {
+      setListAdds((m) => new Map(m).set(i, "error"));
+      setListMessage("Couldn't add that. Try again.");
+    }
   }
 
   async function handleAddToPlan(e: React.FormEvent) {
@@ -293,12 +316,12 @@ export default function RecipeDetailPage() {
             {recipe.ingredients.map((ing, i) => {
               const checked = checkedIngredients.has(i);
               return (
-                <li key={i} className="border-b border-linen-300">
+                <li key={i} className="flex items-start gap-2 border-b border-linen-300">
                   <button
                     type="button"
                     onClick={() => setCheckedIngredients((s) => toggleIn(s, i))}
                     aria-pressed={checked}
-                    className={`flex w-full items-start gap-3 py-2 text-left transition-opacity ${checked ? "opacity-50" : ""}`}
+                    className={`flex min-w-0 flex-1 items-start gap-3 py-2 text-left transition-opacity ${checked ? "opacity-50" : ""}`}
                   >
                     <span
                       aria-hidden="true"
@@ -314,11 +337,30 @@ export default function RecipeDetailPage() {
                       {ing.item}
                     </span>
                   </button>
+                  <button
+                    type="button"
+                    onClick={() => handleAddToList(i, ing)}
+                    disabled={listAdds.get(i) === "adding" || listAdds.get(i) === "added"}
+                    aria-label={`Add ${ing.item} to the grocery list`}
+                    className={`mt-1 shrink-0 rounded-md px-2 py-1.5 text-xs font-semibold transition-colors ${
+                      listAdds.get(i) === "added"
+                        ? "bg-linen-100 text-forest"
+                        : "bg-linen-100 text-ink-light hover:bg-linen-200"
+                    }`}
+                  >
+                    {listAdds.get(i) === "added" ? "✓ List" : listAdds.get(i) === "adding" ? "…" : "+ List"}
+                  </button>
                 </li>
               );
             })}
             {recipe.ingredients.length === 0 && <li className="text-ink-light">No ingredients listed.</li>}
           </ul>
+          {listMessage && (
+            <p className="mt-2 text-xs text-ink-light" role="status">
+              {listMessage}{" "}
+              <Link href="/grocery-list" className="text-forest underline">See list</Link>
+            </p>
+          )}
           {scale !== 1 && (
             <p className="mt-2 text-xs text-ink-light">
               Scaled from the original recipe — items without a clear number (like "to taste") are left as-is.

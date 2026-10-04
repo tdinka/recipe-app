@@ -2,7 +2,8 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { db } from "@/lib/db";
 import { householdFromToken, ITEM_SELECT } from "@/lib/list-auth";
-import { DEFAULT_STORE, SECTIONS, STORE_IDS, combineQuantities, guessSection, toNameKey } from "@/lib/grocery";
+import { DEFAULT_STORE, SECTIONS, STORE_IDS, guessSection } from "@/lib/grocery";
+import { addGroceryItem } from "@/lib/grocery-add";
 
 export const dynamic = "force-dynamic";
 
@@ -46,37 +47,6 @@ export async function POST(req: Request, { params }: { params: { token: string }
   if (!parsed.success) return NextResponse.json({ error: "Invalid item." }, { status: 400 });
   const { name, quantity, store = DEFAULT_STORE, section } = parsed.data;
 
-  // Already on the list for this store? Combine quantities instead of adding a second line.
-  const existing = await db.groceryItem.findFirst({
-    where: { householdId, checked: false, store, name: { equals: name, mode: "insensitive" } },
-  });
-  if (existing) {
-    const item = await db.groceryItem.update({
-      where: { id: existing.id },
-      data: { quantity: combineQuantities(existing.quantity, quantity ?? null) },
-      select: ITEM_SELECT,
-    });
-    return NextResponse.json({ item, merged: true });
-  }
-
-  // Reuse the section from the last time this was bought (it may have been corrected by hand).
-  const past = section
-    ? null
-    : await db.archivedGroceryItem.findUnique({
-        where: { householdId_nameKey: { householdId, nameKey: toNameKey(name) } },
-        select: { section: true },
-      });
-
-  const item = await db.groceryItem.create({
-    data: {
-      name,
-      quantity: quantity || null,
-      store,
-      section: section ?? (past && past.section !== "Other" ? past.section : guessSection(name)),
-      householdId,
-      source: "manual",
-    },
-    select: ITEM_SELECT,
-  });
-  return NextResponse.json({ item }, { status: 201 });
+  const { item, merged } = await addGroceryItem(householdId, { name, quantity, store, section });
+  return NextResponse.json(merged ? { item, merged } : { item }, { status: merged ? 200 : 201 });
 }
