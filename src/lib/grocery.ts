@@ -168,3 +168,41 @@ export function genericIngredientName(ingredient: string): string {
   const result = name || fallback;
   return result.charAt(0).toUpperCase() + result.slice(1);
 }
+
+// Splits what someone said to Siri ("add milk, bread and 2 lbs chicken")
+// into separate items: Milk; Bread; Chicken (2 lbs).
+const NUMBER_WORDS: Record<string, string> = {
+  a: "1", an: "1", one: "1", two: "2", three: "3", four: "4", five: "5", six: "6",
+  seven: "7", eight: "8", nine: "9", ten: "10", eleven: "11", twelve: "12",
+};
+const QUICK_UNITS =
+  "lbs?|pounds?|oz|ounces?|gallons?|half gallons?|bags?|boxes|box|cans?|bottles?|packs?|packages?|cartons?|jars?|bunch(?:es)?|dozen|loaf|loaves";
+// Number and unit must each be followed by a space, so "apples" isn't "a pples"
+// and "canola oil" isn't "can ola oil".
+const QUICK_QUANTITY = new RegExp(
+  `^(?:(\\d+(?:\\.\\d+)?|${Object.keys(NUMBER_WORDS).join("|")})\\s+)?(?:(${QUICK_UNITS})\\s+)?(?:of\\s+)?(.+)$`,
+  "i"
+);
+
+export function splitQuickAdd(text: string): { name: string; quantity: string | null }[] {
+  const cleaned = text
+    .trim()
+    .replace(/^(please\s+)?add\s+/i, "")
+    .replace(/\s+to\s+(the\s+)?(grocery\s+|shopping\s+)?(list|groceries)\.?$/i, "");
+
+  return cleaned
+    .split(/\n|,|;|\band\b|&/i)
+    .map((part) => part.trim().replace(/[.!?]+$/, "").replace(/^(some|more)\s+/i, ""))
+    .filter(Boolean)
+    .map((part) => {
+      const match = part.match(QUICK_QUANTITY);
+      const rawCount = match?.[1]?.toLowerCase();
+      const count = rawCount ? NUMBER_WORDS[rawCount] ?? rawCount : null;
+      const unit = match?.[2]?.toLowerCase() ?? null;
+      let name = (match?.[3] ?? part).trim();
+      // "a bread" → just "Bread"; "2 avocados" keeps its 2.
+      const quantity = unit ? [count, unit].filter(Boolean).join(" ") : count && count !== "1" ? count : null;
+      if (!name) name = part;
+      return { name: name.charAt(0).toUpperCase() + name.slice(1), quantity };
+    });
+}

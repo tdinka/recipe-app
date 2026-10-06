@@ -35,7 +35,7 @@ Self-hosted household recipe app: recipe management, weekly meal planning, and g
 
 ## Workflow
 - Git: Tsega commits and pushes through GitHub Desktop and reviews diffs there. Don't run `git commit`/`git push` unless asked; when a change is ready, say so and summarize what to look for in the diff.
-- Deploy: pushing to GitHub does NOT deploy. After Push origin, Tsega must click "Apply changes"/"Deploy" on the Railway project canvas. Environment variable changes on Railway also need "Apply changes".
+- Deploy: pushing to `main` on GitHub deploys automatically on Railway (takes a few minutes; confirmed Oct 2026). Check the recipe-app service's Deployments list (Railway project "vivacious-gratitude") for "Deployment successful". Environment variable changes on Railway still need "Apply changes".
 - One-time data migrations are built as API backfill routes with a matching Settings UI card, following the existing batched pattern.
 
 ## Gotchas (important)
