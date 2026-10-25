@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { parseIngredientLine, type ParsedIngredient } from "@/lib/ingredient-parser";
+import { parseIngredientLines, type ParsedIngredient } from "@/lib/ingredient-parser";
 import { CATEGORIES } from "@/lib/constants";
 
 export interface ExtractedRecipeFromImage {
@@ -45,7 +45,7 @@ Respond with ONLY a single JSON object — no markdown code fences, no commentar
   "totalMinutes": number or null (only if the image shows a single combined time rather than a prep/cook split — leave null if prep and cook are shown separately),
   "category": one of ${JSON.stringify(CATEGORIES)} or null (your best guess based on the dish),
   "cuisine": string or null (e.g. "Italian", "Thai" — only if inferable),
-  "ingredients": array of strings, each one ingredient line exactly as it appears (e.g. "2 cups flour, sifted"),
+  "ingredients": array of strings, each one ingredient line exactly as it appears (e.g. "2 cups flour, sifted"). If the recipe splits its ingredients into parts with headings (e.g. "Meatballs", "Soup", "For the sauce"), include each heading as its own string ending in a colon (e.g. "Meatballs:"), placed right before that part's ingredients. Don't add headings the recipe doesn't have,
   "instructions": array of strings, each one a single step, in order
 }
 
@@ -136,7 +136,7 @@ export async function extractRecipeFromImage(
     totalMinutes: data.totalMinutes ?? null,
     category: data.category ?? null,
     cuisine: data.cuisine ?? null,
-    ingredients: (data.ingredients ?? []).map((line) => parseIngredientLine(line)),
+    ingredients: parseIngredientLines((data.ingredients ?? []).join("\n")),
     instructions: data.instructions ?? [],
   };
 }
@@ -153,7 +153,7 @@ Respond with ONLY a single JSON object — no markdown code fences, no commentar
   "totalMinutes": number or null (only if the text shows a single combined time rather than a prep/cook split — leave null if prep and cook are shown separately),
   "category": one of ${JSON.stringify(CATEGORIES)} or null (your best guess based on the dish),
   "cuisine": string or null (e.g. "Italian", "Thai" — only if inferable),
-  "ingredients": array of strings, each one ingredient line exactly as it appears (e.g. "2 cups flour, sifted"),
+  "ingredients": array of strings, each one ingredient line exactly as it appears (e.g. "2 cups flour, sifted"). If the recipe splits its ingredients into parts with headings (e.g. "Meatballs", "Soup", "For the sauce"), include each heading as its own string ending in a colon (e.g. "Meatballs:"), placed right before that part's ingredients. Don't add headings the recipe doesn't have,
   "instructions": array of strings, each one a single step, in order
 }
 
@@ -237,7 +237,7 @@ export async function extractRecipeFromText(rawText: string): Promise<ExtractedR
     totalMinutes: data.totalMinutes ?? null,
     category: data.category ?? null,
     cuisine: data.cuisine ?? null,
-    ingredients: (data.ingredients ?? []).map((line) => parseIngredientLine(line)),
+    ingredients: parseIngredientLines((data.ingredients ?? []).join("\n")),
     instructions: data.instructions ?? [],
   };
 }

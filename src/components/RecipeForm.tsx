@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { CATEGORIES } from "@/lib/constants";
-import { parseIngredientLine } from "@/lib/ingredient-parser";
+import { parseIngredientLines } from "@/lib/ingredient-parser";
 import { PhotoPicker, type SelectedPhoto } from "@/components/PhotoPicker";
 
 export interface RecipeFormValues {
@@ -83,11 +83,8 @@ export function RecipeForm({
     }
   }
 
-  const ingredientPreview = values.ingredientsText
-    .split("\n")
-    .map((l) => l.trim())
-    .filter(Boolean)
-    .map((l) => parseIngredientLine(l));
+  const ingredientPreview = parseIngredientLines(values.ingredientsText);
+  const groupCount = new Set(ingredientPreview.map((p) => p.group).filter(Boolean)).size;
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
@@ -199,10 +196,13 @@ export function RecipeForm({
           <textarea
             className="input font-mono text-sm"
             rows={12}
-            placeholder={"2 cups flour\n1 tsp salt\n3 large eggs"}
+            placeholder={"2 cups flour\n1 tsp salt\n3 large eggs\n\nFor the frosting:\n1 cup butter\n2 cups powdered sugar"}
             value={values.ingredientsText}
             onChange={(e) => set("ingredientsText", e.target.value)}
           />
+          <p className="mt-1 text-xs text-ink-light">
+            To split ingredients into parts, put a heading on its own line ending in a colon, like &ldquo;Meatballs:&rdquo;.
+          </p>
           {ingredientPreview.length > 0 && (
             <div className="mt-2 rounded-md bg-linen-100 p-3 text-xs text-ink-light">
               <p className="mb-1 font-semibold uppercase tracking-wide">Parsed preview</p>
@@ -215,6 +215,7 @@ export function RecipeForm({
                   </li>
                 ))}
                 {ingredientPreview.length > 4 && <li>… {ingredientPreview.length - 4} more</li>}
+                {groupCount > 0 && <li>In {groupCount} group{groupCount === 1 ? "" : "s"}</li>}
               </ul>
             </div>
           )}

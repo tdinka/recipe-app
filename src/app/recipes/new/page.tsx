@@ -4,7 +4,7 @@ import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { RecipeForm, emptyRecipeForm, type RecipeFormValues } from "@/components/RecipeForm";
 import type { ExtractedRecipe } from "@/lib/recipe-extractor";
-import { parseIngredientLine } from "@/lib/ingredient-parser";
+import { ingredientsToText, parseIngredientLines } from "@/lib/ingredient-parser";
 
 type Mode = "choose" | "url" | "image" | "text" | "manual" | "review";
 
@@ -40,7 +40,7 @@ export default function NewRecipePage() {
     title: string; sourceUrl: string | null; imageUrl: string | null; description: string | null;
     servings: number | null; prepMinutes: number | null; cookMinutes: number | null; totalMinutes: number | null;
     category: string | null; cuisine: string | null; tags?: string[];
-    ingredients: { raw: string }[]; instructions: string[];
+    ingredients: { raw: string; group?: string | null }[]; instructions: string[];
   }) {
     setFormValues({
       title: recipe.title,
@@ -55,7 +55,7 @@ export default function NewRecipePage() {
       totalMinutes: recipe.totalMinutes,
       category: recipe.category,
       cuisine: recipe.cuisine,
-      ingredientsText: recipe.ingredients.map((i) => i.raw).join("\n"),
+      ingredientsText: ingredientsToText(recipe.ingredients),
       instructionsText: recipe.instructions.join("\n"),
       tagsText: (recipe.tags ?? []).join(", "),
     });
@@ -162,7 +162,7 @@ export default function NewRecipePage() {
       totalMinutes: values.totalMinutes,
       category: values.category,
       cuisine: values.cuisine,
-      ingredients: values.ingredientsText.split("\n").map((l) => l.trim()).filter(Boolean).map((raw) => parseIngredientLine(raw)),
+      ingredients: parseIngredientLines(values.ingredientsText),
       instructions: values.instructionsText.split("\n").map((l) => l.trim()).filter(Boolean),
       tags: values.tagsText.split(",").map((t) => t.trim()).filter(Boolean),
     };

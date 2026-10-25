@@ -88,6 +88,47 @@ function ingredientsOf(value: unknown): ParsedIngredient[] {
     .map((entry) => parseIngredientLine(entry));
 }
 
+// The structured data lists ingredients as one flat list, but many recipes split
+// them into parts ("Meatballs", "Soup", "To garnish"). Those headings only appear
+// on the visible page, so read them from the common recipe plugins' markup.
+// Returns one group name (or null) per ingredient line, in page order.
+function ingredientGroupsFromPage($: cheerio.CheerioAPI): (string | null)[] {
+  // WP Recipe Maker (skipping the "jump to recipe" snippet box, which has no ingredients)
+  const wprm = $(".wprm-recipe-ingredients-container").first();
+  if (wprm.length) {
+    const groups: (string | null)[] = [];
+    wprm.find(".wprm-recipe-ingredient-group").each((_, el) => {
+      const name = $(el).find(".wprm-recipe-group-name").first().text().trim() || null;
+      $(el).find(".wprm-recipe-ingredient").each(() => {
+        groups.push(name);
+      });
+    });
+    if (groups.length) return groups;
+  }
+
+  // Tasty Recipes and Mediavine Create: headings followed by lists.
+  const container = $(".tasty-recipes-ingredients, .mv-create-ingredients").first();
+  if (container.length) {
+    const groups: (string | null)[] = [];
+    let current: string | null = null;
+    container.find("h3, h4, li").each((_, el) => {
+      if (el.tagName === "li") {
+        groups.push(current);
+      } else {
+        current = $(el).text().trim().replace(/:$/, "") || null;
+      }
+    });
+    return groups;
+  }
+  return [];
+}
+
+function withGroups(ingredients: ParsedIngredient[], groups: (string | null)[]): ParsedIngredient[] {
+  // Only trust the headings if the page lists exactly the same number of ingredients.
+  if (groups.length !== ingredients.length || !groups.some(Boolean)) return ingredients;
+  return ingredients.map((ing, i) => (groups[i] ? { ...ing, group: groups[i] } : ing));
+}
+
 function instructionsOf(value: unknown): string[] {
   if (typeof value === "string") {
     // Some sites put the whole method as one HTML/plain-text blob; split on line breaks.
@@ -240,7 +281,7 @@ export async function extractRecipeFromUrl(url: string): Promise<ExtractedRecipe
     totalMinutes: parseDurationToMinutes(node.totalTime) ?? parseDurationToMinutes(findMicrodataDuration($, "totalTime")),
         ...categoryAndTagsOf(node.recipeCategory),
     cuisine: textOf(node.recipeCuisine),
-    ingredients: ingredientsOf(node.recipeIngredient),
+    ingredients: withGroups(ingredientsOf(node.recipeIngredient), ingredientGroupsFromPage($)),
     instructions: instructionsOf(node.recipeInstructions),
   };
 }

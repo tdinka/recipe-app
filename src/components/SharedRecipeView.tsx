@@ -1,10 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { Fragment, useState } from "react";
 import Image from "next/image";
 import { scaleQuantityText, formatScaledNumber } from "@/lib/scale-quantity";
 import { proxiedImageUrl } from "@/lib/image-proxy";
-import type { ParsedIngredient } from "@/lib/ingredient-parser";
+import { startsGroup, type ParsedIngredient } from "@/lib/ingredient-parser";
 
 interface Props {
   title: string;
@@ -86,13 +86,19 @@ export function SharedRecipeView({
             </div>
           </div>
           <ul className="mt-3 space-y-2 text-sm">
-            {ingredients.map((ing, i) => (
-              <li key={i} className="border-b border-linen-300 pb-2">
-                {ing.quantity && <span className="measure">{scale === 1 ? ing.quantity : scaleQuantityText(ing.quantity, scale)} </span>}
-                {ing.unit && <span className="measure">{ing.unit} </span>}
-                {ing.item}
-              </li>
-            ))}
+            {ingredients.map((ing, i) => {
+              const heading = startsGroup(ingredients, i);
+              return (
+                <Fragment key={i}>
+                  {heading && <li className="pt-3 font-display text-base text-ink first:pt-0">{heading}</li>}
+                  <li className="border-b border-linen-300 pb-2">
+                    {ing.quantity && <span className="measure">{scale === 1 ? ing.quantity : scaleQuantityText(ing.quantity, scale)} </span>}
+                    {ing.unit && <span className="measure">{ing.unit} </span>}
+                    {ing.item}
+                  </li>
+                </Fragment>
+              );
+            })}
             {ingredients.length === 0 && <li className="text-ink-light">No ingredients listed.</li>}
           </ul>
         </div>

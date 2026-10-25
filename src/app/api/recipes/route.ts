@@ -8,6 +8,7 @@ const ingredientSchema = z.object({
   quantity: z.string().nullable().optional(),
   unit: z.string().nullable().optional(),
   item: z.string(),
+  group: z.string().max(80).nullable().optional(),
 });
 
 const recipeInputSchema = z.object({

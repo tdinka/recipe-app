@@ -1,12 +1,12 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { Fragment, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useParams, useRouter } from "next/navigation";
 import { MEAL_TYPES } from "@/lib/constants";
 import { scaleQuantityText, formatScaledNumber } from "@/lib/scale-quantity";
-import type { ParsedIngredient } from "@/lib/ingredient-parser";
+import { startsGroup, type ParsedIngredient } from "@/lib/ingredient-parser";
 import { PhotoPicker, type SelectedPhoto } from "@/components/PhotoPicker";
 import { proxiedImageUrl } from "@/lib/image-proxy";
 
@@ -315,8 +315,11 @@ export default function RecipeDetailPage() {
           <ul className={`mt-3 ${listText}`}>
             {recipe.ingredients.map((ing, i) => {
               const checked = checkedIngredients.has(i);
+              const heading = startsGroup(recipe.ingredients, i);
               return (
-                <li key={i} className="flex items-start gap-2 border-b border-linen-300">
+                <Fragment key={i}>
+                {heading && <li className="pb-1 pt-4 font-display text-base text-ink first:pt-0">{heading}</li>}
+                <li className="flex items-start gap-2 border-b border-linen-300">
                   <button
                     type="button"
                     onClick={() => setCheckedIngredients((s) => toggleIn(s, i))}
@@ -351,6 +354,7 @@ export default function RecipeDetailPage() {
                     {listAdds.get(i) === "added" ? "✓ List" : listAdds.get(i) === "adding" ? "…" : "+ List"}
                   </button>
                 </li>
+                </Fragment>
               );
             })}
             {recipe.ingredients.length === 0 && <li className="text-ink-light">No ingredients listed.</li>}

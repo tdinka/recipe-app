@@ -3,6 +3,9 @@ export interface ParsedIngredient {
   quantity: string | null;
   unit: string | null;
   item: string;
+  // Which part of the recipe this belongs to, e.g. "Meatballs" or "For the sauce".
+  // Missing for recipes without groups.
+  group?: string | null;
 }
 
 const UNIT_WORDS = [
@@ -59,4 +62,48 @@ export function parseIngredientLine(rawInput: string): ParsedIngredient {
   }
 
   return { raw, quantity, unit: null, item: rest };
+}
+
+// In the ingredients box, a line ending in a colon ("Meatballs:", "For the sauce:")
+// starts a new group instead of being an ingredient.
+export function groupHeadingOf(line: string): string | null {
+  const text = line.trim();
+  if (!text.endsWith(":") || text.length > 60 || /^[\d¼½¾⅓⅔⅛]/.test(text)) return null;
+  const name = text.slice(0, -1).trim();
+  return name || null;
+}
+
+// Turns the ingredients box (one line each, with optional "Group:" headings)
+// into ingredients that remember their group.
+export function parseIngredientLines(text: string): ParsedIngredient[] {
+  let group: string | null = null;
+  const result: ParsedIngredient[] = [];
+  for (const line of text.split("\n").map((l) => l.trim()).filter(Boolean)) {
+    const heading = groupHeadingOf(line);
+    if (heading) {
+      group = heading;
+      continue;
+    }
+    result.push({ ...parseIngredientLine(line), ...(group ? { group } : {}) });
+  }
+  return result;
+}
+
+// The reverse, for filling the ingredients box: adds a "Group:" line wherever the group changes.
+export function ingredientsToText(ingredients: { raw: string; group?: string | null }[]): string {
+  const lines: string[] = [];
+  let current: string | null = null;
+  for (const ing of ingredients) {
+    const group = ing.group || null;
+    if (group && group !== current) lines.push(`${group}:`);
+    current = group;
+    lines.push(ing.raw);
+  }
+  return lines.join("\n");
+}
+
+// The group heading to show above ingredient i, or null if it continues the group before it.
+export function startsGroup(ingredients: { group?: string | null }[], i: number): string | null {
+  const group = ingredients[i]?.group || null;
+  return group && group !== (ingredients[i - 1]?.group || null) ? group : null;
 }

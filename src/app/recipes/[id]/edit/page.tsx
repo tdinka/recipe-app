@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { RecipeForm, type RecipeFormValues } from "@/components/RecipeForm";
-import { parseIngredientLine } from "@/lib/ingredient-parser";
+import { ingredientsToText, parseIngredientLines } from "@/lib/ingredient-parser";
 
 export default function EditRecipePage() {
   const params = useParams<{ id: string }>();
@@ -28,7 +28,7 @@ export default function EditRecipePage() {
         totalMinutes: r.totalMinutes,
         category: r.category,
         cuisine: r.cuisine,
-        ingredientsText: r.ingredients.map((i: { raw: string }) => i.raw).join("\n"),
+        ingredientsText: ingredientsToText(r.ingredients),
         instructionsText: r.instructions.join("\n"),
         tagsText: r.tags.join(", "),
       });
@@ -49,7 +49,7 @@ export default function EditRecipePage() {
       totalMinutes: values.totalMinutes,
       category: values.category,
       cuisine: values.cuisine,
-      ingredients: values.ingredientsText.split("\n").map((l) => l.trim()).filter(Boolean).map((raw) => parseIngredientLine(raw)),
+      ingredients: parseIngredientLines(values.ingredientsText),
       instructions: values.instructionsText.split("\n").map((l) => l.trim()).filter(Boolean),
       tags: values.tagsText.split(",").map((t) => t.trim()).filter(Boolean),
     };
