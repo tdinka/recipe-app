@@ -9,6 +9,7 @@ import { scaleQuantityText, formatScaledNumber } from "@/lib/scale-quantity";
 import { startsGroup, type ParsedIngredient } from "@/lib/ingredient-parser";
 import { PhotoPicker, type SelectedPhoto } from "@/components/PhotoPicker";
 import { proxiedImageUrl } from "@/lib/image-proxy";
+import { RecipeNotes } from "@/components/RecipeNotes";
 
 interface RecipeDetail {
   id: string;
@@ -24,6 +25,7 @@ interface RecipeDetail {
   totalMinutes: number | null;
   category: string | null;
   cuisine: string | null;
+  notes: string | null;
   ingredients: ParsedIngredient[];
   instructions: string[];
   tags: string[];
@@ -223,6 +225,8 @@ export default function RecipeDetailPage() {
           <button onClick={handleDelete} className="btn-ghost text-brick">Delete</button>
         </div>
       </div>
+
+      <RecipeNotes recipeId={recipe.id} initialNotes={recipe.notes} />
 
       {recipe.imageUrl ? (
         <div className="mt-4">
