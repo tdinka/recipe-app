@@ -25,7 +25,7 @@ export async function POST(_req: Request, { params }: { params: { id: string } }
 const editSchema = z.object({ lines: z.array(z.string().max(120)).max(10) });
 
 // PUT: save a hand-edited list (one suggestion per line). Lines that weren't
-// changed keep their link to a recipe in the box.
+// changed keep their link (to a recipe in the box or on the web).
 export async function PUT(req: Request, { params }: { params: { id: string } }) {
   const session = await requireSession();
   if (!session) return NextResponse.json({ error: "Not signed in." }, { status: 401 });
@@ -43,7 +43,10 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
   const suggestions = parsed.data.lines
     .map((line) => line.trim())
     .filter(Boolean)
-    .map((text) => ({ text, recipeId: previous.find((p) => p.text === text)?.recipeId ?? null }));
+    .map((text) => {
+      const match = previous.find((p) => p.text === text);
+      return { text, recipeId: match?.recipeId ?? null, url: match?.url ?? null };
+    });
 
   await db.recipe.update({ where: { id: recipe.id }, data: { servingSuggestionsJson: JSON.stringify(suggestions) } });
   return NextResponse.json({ suggestions });

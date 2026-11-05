@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import type { ServingSuggestion } from "@/lib/serving-suggestions";
 
-// "Serve it with" ideas for a recipe. Written by Claude the first time the recipe
+// "Serve it with" ideas for a recipe, from the recipe box and the web. Written by Claude the first time the recipe
 // is opened, then saved; can be refreshed or edited by hand.
 export function ServingSuggestions({ recipeId, initial }: { recipeId: string; initial: ServingSuggestion[] | null }) {
   const [suggestions, setSuggestions] = useState<ServingSuggestion[] | null>(initial);
@@ -99,7 +99,7 @@ export function ServingSuggestions({ recipeId, initial }: { recipeId: string; in
           </div>
         </div>
       ) : loading ? (
-        <p className="mt-2 text-sm text-ink-light">Coming up with ideas…</p>
+        <p className="mt-2 text-sm text-ink-light">Coming up with ideas and searching the web… (this can take up to a minute)</p>
       ) : suggestions && suggestions.length > 0 ? (
         <ul className="mt-2 space-y-1.5">
           {suggestions.map((s, i) => (
@@ -109,6 +109,10 @@ export function ServingSuggestions({ recipeId, initial }: { recipeId: string; in
                 <Link href={`/recipes/${s.recipeId}`} className="text-forest underline">
                   {s.text}
                 </Link>
+              ) : s.url ? (
+                <a href={s.url} target="_blank" rel="noreferrer" className="text-forest underline">
+                  {s.text} <span className="text-xs text-ink-light no-underline">({siteName(s.url)} ↗)</span>
+                </a>
               ) : (
                 <span>{s.text}</span>
               )}
@@ -118,10 +122,20 @@ export function ServingSuggestions({ recipeId, initial }: { recipeId: string; in
       ) : (
         !error && <p className="mt-2 text-sm text-ink-light">No suggestions yet.</p>
       )}
-      {suggestions?.some((s) => s.recipeId) && !editing && !loading && (
-        <p className="mt-2 text-xs text-ink-light">Underlined ideas are recipes already in your box.</p>
+      {suggestions?.some((s) => s.recipeId || s.url) && !editing && !loading && (
+        <p className="mt-2 text-xs text-ink-light">
+          Underlined ideas are recipes: in your box, or on the web where the site is named.
+        </p>
       )}
       {error && <p className="mt-2 text-sm text-brick">{error}</p>}
     </section>
   );
+}
+
+function siteName(url: string): string {
+  try {
+    return new URL(url).hostname.replace(/^www\./, "");
+  } catch {
+    return "web";
+  }
 }
