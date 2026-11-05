@@ -70,6 +70,10 @@ model Recipe {
   // The household's own notes (changes made, what worked). Private: never shown on share links.
   notes String?
 
+  // "Serve it with" ideas written by Claude: [{ text: string, recipeId: string|null }].
+  // Null until first generated (on the first visit to the recipe page).
+  servingSuggestionsJson String?
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 

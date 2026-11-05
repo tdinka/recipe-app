@@ -10,6 +10,8 @@ import { startsGroup, type ParsedIngredient } from "@/lib/ingredient-parser";
 import { PhotoPicker, type SelectedPhoto } from "@/components/PhotoPicker";
 import { proxiedImageUrl } from "@/lib/image-proxy";
 import { RecipeNotes } from "@/components/RecipeNotes";
+import { ServingSuggestions } from "@/components/ServingSuggestions";
+import type { ServingSuggestion } from "@/lib/serving-suggestions";
 
 interface RecipeDetail {
   id: string;
@@ -26,6 +28,7 @@ interface RecipeDetail {
   category: string | null;
   cuisine: string | null;
   notes: string | null;
+  servingSuggestions: ServingSuggestion[] | null;
   ingredients: ParsedIngredient[];
   instructions: string[];
   tags: string[];
@@ -409,7 +412,9 @@ export default function RecipeDetailPage() {
         </div>
       </div>
 
-      <div className="card mt-10 p-5">
+      <ServingSuggestions recipeId={recipe.id} initial={recipe.servingSuggestions} />
+
+      <div className="card mt-6 p-5">
         <h2 className="font-display text-lg text-ink">Add to meal plan</h2>
         <form onSubmit={handleAddToPlan} className="mt-3 grid grid-cols-2 gap-3 sm:flex sm:flex-wrap sm:items-end">
           <div>

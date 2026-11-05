@@ -60,6 +60,7 @@ export async function GET(_req: Request, { params }: { params: { id: string } })
       category: recipe.category,
       cuisine: recipe.cuisine,
       notes: recipe.notes,
+      servingSuggestions: recipe.servingSuggestionsJson ? JSON.parse(recipe.servingSuggestionsJson) : null,
       ingredients: JSON.parse(recipe.ingredientsJson),
       instructions: JSON.parse(recipe.instructionsJson),
       tags: recipe.tags.map((t) => t.tag.name),
