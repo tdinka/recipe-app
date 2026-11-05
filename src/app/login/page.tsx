@@ -5,6 +5,20 @@ import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 
+// Go back to the page that asked for the login (a shared recipe, say), but only
+// within this site. Parsed directly because of the useSearchParams issue on Next 14.2.
+function pageAfterLogin() {
+  const callbackUrl = new URLSearchParams(window.location.search).get("callbackUrl");
+  if (!callbackUrl) return "/recipes";
+  try {
+    const target = new URL(callbackUrl, window.location.origin);
+    if (target.origin === window.location.origin) return target.pathname + target.search;
+  } catch {
+    // Not a usable address; fall through to the recipe list.
+  }
+  return "/recipes";
+}
+
 export default function LoginPage() {
   const router = useRouter();
   const [email, setEmail] = useState("");
@@ -22,7 +36,7 @@ export default function LoginPage() {
       setError("Email or password didn't match. Try again.");
       return;
     }
-    router.push("/recipes");
+    router.push(pageAfterLogin());
     router.refresh();
   }
 

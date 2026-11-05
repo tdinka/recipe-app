@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { RecipeForm, emptyRecipeForm, type RecipeFormValues } from "@/components/RecipeForm";
 import type { ExtractedRecipe } from "@/lib/recipe-extractor";
@@ -15,6 +15,15 @@ function fileToDataUrl(file: File): Promise<string> {
     reader.onerror = () => reject(new Error("Couldn't read that file."));
     reader.readAsDataURL(file);
   });
+}
+
+function httpLinkOrNull(link: string | null): string | null {
+  if (!link) return null;
+  try {
+    return ["http:", "https:"].includes(new URL(link).protocol) ? link : null;
+  } catch {
+    return null;
+  }
 }
 
 export default function NewRecipePage() {
@@ -33,6 +42,9 @@ export default function NewRecipePage() {
   const [pastedText, setPastedText] = useState("");
   const [textImporting, setTextImporting] = useState(false);
   const [textError, setTextError] = useState<string | null>(null);
+  // The post a recipe came from, when it was sent here by the Add to Recipe Box shortcut.
+  const [sharedSource, setSharedSource] = useState<string | null>(null);
+  const sharedImportStarted = useRef(false);
 
   const [formValues, setFormValues] = useState<RecipeFormValues | null>(null);
 
@@ -124,29 +136,49 @@ export default function NewRecipePage() {
   }
 
 
-  async function handleImportText(e: React.FormEvent) {
-    e.preventDefault();
-    if (!pastedText.trim()) return;
+  async function importText(text: string, sourceUrl: string | null) {
     setTextImporting(true);
     setTextError(null);
     try {
       const res = await fetch("/api/recipes/extract-text", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ text: pastedText }),
+        body: JSON.stringify({ text }),
       });
       const json = await res.json();
       if (!res.ok) {
         setTextError(json.error ?? "Couldn't read that text.");
         return;
       }
-      populateForm(json.recipe);
+      populateForm({ ...json.recipe, sourceUrl });
     } catch {
       setTextError("Couldn't read that text. Try again.");
     } finally {
       setTextImporting(false);
     }
   }
+
+  function handleImportText(e: React.FormEvent) {
+    e.preventDefault();
+    if (!pastedText.trim()) return;
+    importText(pastedText, sharedSource);
+  }
+
+  // Arriving from the Add to Recipe Box shortcut: read the caption right away.
+  useEffect(() => {
+    if (sharedImportStarted.current) return;
+    sharedImportStarted.current = true;
+    const params = new URLSearchParams(window.location.search);
+    const text = params.get("sharedText")?.trim();
+    if (!text) return;
+    const source = httpLinkOrNull(params.get("sharedUrl"));
+    window.history.replaceState(null, "", "/recipes/new");
+    setSharedSource(source);
+    setPastedText(text);
+    setMode("text");
+    importText(text, source);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   async function handleSave(values: RecipeFormValues) {
     const payload = {
@@ -186,6 +218,7 @@ export default function NewRecipePage() {
     if (fileInputRef.current) fileInputRef.current.value = "";
     setPastedText("");
     setTextError(null);
+    setSharedSource(null);
     setMode("choose");
   }
 
@@ -237,6 +270,7 @@ export default function NewRecipePage() {
           )}
           <p className="text-xs text-ink-light">
             Works best on sites that publish structured recipe data (most food blogs and recipe sites do).
+            For Instagram and TikTok, use the shortcut in Settings or paste the caption.
           </p>
         </form>
       )}

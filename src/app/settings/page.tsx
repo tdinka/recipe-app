@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { ShareSettings } from "@/components/ShareSettings";
 import { ListLinkSettings } from "@/components/ListLinkSettings";
+import { RecipeShortcutSettings } from "@/components/RecipeShortcutSettings";
 import PushAlertsButton from "./PushAlertsButton";
 
 interface BackfillResult {
@@ -127,6 +128,9 @@ export default function SettingsPage() {
       </div>
       <div className="mt-6">
         <ListLinkSettings />
+      </div>
+      <div className="mt-6">
+        <RecipeShortcutSettings />
       </div>
       <div className="mt-6">
         <PushAlertsButton />
