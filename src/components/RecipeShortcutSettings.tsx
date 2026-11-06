@@ -3,15 +3,28 @@
 import { useEffect, useState } from "react";
 
 // Runs inside Safari on the post being viewed, via the Shortcuts app. Sends the
-// caption (or page text, whichever is longer) to the Add a recipe page, trimmed
-// so the address stays short enough for the server to accept.
+// caption to the Add a recipe page, trimmed so the address stays short enough for
+// the server to accept. Instagram puts the caption in a different page tag from post
+// to post (sometimes just the like count in the others), so take the longest. Page
+// text can include strangers' comments, so it's only used when no tag has a caption;
+// the page may still be loading then, so give it one more try first.
 function shortcutScript(origin: string) {
-  return `var m = document.querySelector('meta[property="og:description"]');
-var a = (m && m.content) || "";
-var b = (document.querySelector("main") || document.body).innerText || "";
-var c = Array.from(a.length > b.length ? a : b), e;
-do { e = encodeURIComponent(c.join("")); c = c.slice(0, -200); } while (e.length > 10000);
-completion("${origin}/recipes/new?sharedUrl=" + encodeURIComponent(location.href) + "&sharedText=" + e);`;
+  return `function send(retry) {
+  var a = "";
+  ['meta[property="og:description"]', 'meta[name="description"]', 'meta[property="og:title"]'].forEach(function (s) {
+    var m = document.querySelector(s);
+    if (m && m.content.length > a.length) a = m.content;
+  });
+  if (a.length < 200) {
+    if (retry) { setTimeout(function () { send(false); }, 3000); return; }
+    var b = (document.querySelector("main") || document.body).innerText || "";
+    if (b.length > a.length) a = b;
+  }
+  var c = Array.from(a), e;
+  do { e = encodeURIComponent(c.join("")); c = c.slice(0, -200); } while (e.length > 10000);
+  completion("${origin}/recipes/new?sharedUrl=" + encodeURIComponent(location.href) + "&sharedText=" + e);
+}
+send(true);`;
 }
 
 export function RecipeShortcutSettings() {
@@ -49,11 +62,13 @@ export function RecipeShortcutSettings() {
           <strong>Add to Recipe Box</strong>.
         </li>
         <li>
-          Tap the <strong>i</strong> button and turn on <strong>Show in Share Sheet</strong>. If it asks what the
-          shortcut receives, choose only <strong>Safari web pages</strong>.
+          Tap the <strong>i</strong> button and turn on <strong>Show in Share Sheet</strong>. Then, in the{" "}
+          <strong>Receive</strong> row at the top of the shortcut, tap the blue list of types and leave only{" "}
+          <strong>Safari web pages</strong> turned on.
         </li>
         <li>
-          Add the action <strong>Run JavaScript on Web Page</strong>. Delete the sample text and paste the script.
+          Add the action <strong>Run JavaScript on Web Page</strong>. If <strong>Web Page</strong> looks pale, tap it
+          and choose <strong>Shortcut Input</strong>. Delete the sample text and paste the script.
         </li>
         <li>
           Add the action <strong>Open URLs</strong> (it picks <strong>JavaScript Result</strong>), then tap{" "}
@@ -73,9 +88,12 @@ export function RecipeShortcutSettings() {
           </button>
         </>
       )}
-      <p className="mt-3 text-xs text-ink-light">
-        The first time you use it on a site, the iPhone asks permission to run the shortcut there. If you&apos;re in the
-        Instagram or TikTok app, copy the post&apos;s link and open it in Safari first.
+      <p className="mt-3 text-sm text-ink">
+        <strong>This only works from Safari, not from inside the Instagram or TikTok app.</strong> In the app, copy the
+        post&apos;s link, paste it into Safari&apos;s address bar, then tap Share there.
+      </p>
+      <p className="mt-2 text-xs text-ink-light">
+        The first time you use it on a site, the iPhone asks permission to run the shortcut there.
       </p>
     </div>
   );
