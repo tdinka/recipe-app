@@ -53,7 +53,8 @@ export async function GET(req: Request) {
         : {}),
     },
     include: { tags: { include: { tag: true } } },
-    orderBy: { createdAt: "desc" },
+    // Pinned recipes first (most recently pinned on top), then newest first.
+    orderBy: [{ pinnedAt: { sort: "desc", nulls: "last" } }, { createdAt: "desc" }],
   });
 
   return NextResponse.json({
@@ -68,6 +69,7 @@ export async function GET(req: Request) {
       totalMinutes: r.totalMinutes,
       servings: r.servings,
       tags: r.tags.map((t) => t.tag.name),
+      pinned: r.pinnedAt !== null,
       createdAt: r.createdAt,
     })),
   });

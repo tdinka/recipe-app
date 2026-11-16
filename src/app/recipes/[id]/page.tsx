@@ -10,6 +10,7 @@ import { startsGroup, type ParsedIngredient } from "@/lib/ingredient-parser";
 import { PhotoPicker, type SelectedPhoto } from "@/components/PhotoPicker";
 import { proxiedImageUrl } from "@/lib/image-proxy";
 import { RecipeNotes } from "@/components/RecipeNotes";
+import { PinButton } from "@/components/PinButton";
 import { ServingSuggestions } from "@/components/ServingSuggestions";
 import type { ServingSuggestion } from "@/lib/serving-suggestions";
 
@@ -28,6 +29,7 @@ interface RecipeDetail {
   category: string | null;
   cuisine: string | null;
   notes: string | null;
+  pinned: boolean;
   servingSuggestions: ServingSuggestion[] | null;
   ingredients: ParsedIngredient[];
   instructions: string[];
@@ -224,6 +226,7 @@ export default function RecipeDetailPage() {
           {recipe.description && <p className="mt-2 text-ink-light">{recipe.description}</p>}
         </div>
         <div className="flex gap-2">
+          <PinButton recipeId={recipe.id} pinned={recipe.pinned} />
           <Link href={`/recipes/${recipe.id}/edit`} className="btn-ghost">Edit</Link>
           <button onClick={handleDelete} className="btn-ghost text-brick">Delete</button>
         </div>

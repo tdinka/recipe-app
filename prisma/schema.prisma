@@ -74,6 +74,9 @@ model Recipe {
   // Null until first generated (on the first visit to the recipe page).
   servingSuggestionsJson String?
 
+  // When the recipe was pinned to the top of the recipe box. Empty = not pinned.
+  pinnedAt DateTime?
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 

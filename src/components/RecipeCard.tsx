@@ -1,6 +1,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { proxiedImageUrl } from "@/lib/image-proxy";
+import { PinButton } from "@/components/PinButton";
 
 export interface RecipeCardData {
   id: string;
@@ -12,14 +13,25 @@ export interface RecipeCardData {
   cookMinutes: number | null;
   totalMinutes: number | null;
   tags: string[];
+  pinned: boolean;
 }
 
-export function RecipeCard({ recipe }: { recipe: RecipeCardData }) {
+// onPinChange is only passed in the household's own recipe box; without it the
+// card has no pin button.
+export function RecipeCard({
+  recipe,
+  onPinChange,
+}: {
+  recipe: RecipeCardData;
+  onPinChange?: (pinned: boolean) => void;
+}) {
   const splitTime = (recipe.prepMinutes ?? 0) + (recipe.cookMinutes ?? 0);
   const totalTime = splitTime > 0 ? splitTime : recipe.totalMinutes;
 
   return (
-    <Link href={`/recipes/${recipe.id}`} className="recipe-card card block overflow-hidden">
+    // The pin button sits beside the link, not inside it, so tapping it doesn't open the recipe.
+    <div className="relative">
+    <Link href={`/recipes/${recipe.id}`} className="recipe-card card block h-full overflow-hidden">
       <div className="relative h-28 w-full bg-linen-200 sm:h-40">
         {recipe.imageUrl ? (
           <Image
@@ -52,5 +64,11 @@ export function RecipeCard({ recipe }: { recipe: RecipeCardData }) {
         )}
       </div>
     </Link>
+    {onPinChange && (
+      <div className="absolute right-2 top-2">
+        <PinButton key={String(recipe.pinned)} recipeId={recipe.id} pinned={recipe.pinned} onChange={onPinChange} variant="overlay" />
+      </div>
+    )}
+    </div>
   );
 }

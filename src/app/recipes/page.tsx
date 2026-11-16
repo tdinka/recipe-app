@@ -54,6 +54,9 @@ export default function RecipesPage() {
     setFilters(readFiltersFromLocation());
   }
 
+  const pinned = recipes?.filter((r) => r.pinned) ?? [];
+  const unpinned = recipes?.filter((r) => !r.pinned) ?? [];
+
   function clearFilters() {
     window.history.pushState(null, "", "/recipes");
     setFilters({ category: "", tag: "", q: "" });
@@ -107,9 +110,23 @@ export default function RecipesPage() {
         </div>
       )}
 
-      <div className="mt-5 grid grid-cols-2 gap-3 sm:mt-6 sm:gap-4 lg:grid-cols-3">
-        {recipes?.map((r) => <RecipeCard key={r.id} recipe={r} />)}
-      </div>
+      {pinned.length > 0 && (
+        <section className="mt-5 sm:mt-6">
+          <h2 className="font-display text-lg text-ink">📌 Pinned</h2>
+          <div className="mt-2 grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-3">
+            {pinned.map((r) => <RecipeCard key={r.id} recipe={r} onPinChange={load} />)}
+          </div>
+        </section>
+      )}
+
+      <section className="mt-5 sm:mt-6">
+        {pinned.length > 0 && unpinned.length > 0 && (
+          <h2 className="mb-2 font-display text-lg text-ink">All recipes</h2>
+        )}
+        <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-3">
+          {unpinned.map((r) => <RecipeCard key={r.id} recipe={r} onPinChange={load} />)}
+        </div>
+      </section>
     </div>
   );
 }
