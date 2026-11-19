@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { ShareSettings } from "@/components/ShareSettings";
 import { ListLinkSettings } from "@/components/ListLinkSettings";
 import { RecipeShortcutSettings } from "@/components/RecipeShortcutSettings";
+import { FoodPreferences } from "@/components/FoodPreferences";
 import PushAlertsButton from "./PushAlertsButton";
 
 interface BackfillResult {
@@ -123,6 +124,9 @@ export default function SettingsPage() {
         </div>
       )}
 
+      <div className="mt-6">
+        <FoodPreferences />
+      </div>
       <div className="mt-6">
         <ShareSettings />
       </div>

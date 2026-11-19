@@ -21,12 +21,21 @@ model Household {
   // Secret link for the family grocery list (/list/[token]). Created the first time it's needed.
   listToken    String?  @unique
 
+  // Food preferences, written in plain words. Claude reads these when suggesting recipes.
+  prefsWhoEating String?
+  prefsDislikes  String?
+  prefsDietGoals String?
+  prefsCookTime  String?
+  prefsCuisines  String?
+  prefsEquipment String?
+
   users           User[]
   recipes         Recipe[]
   tags            Tag[]
   mealPlanEntries MealPlanEntry[]
   groceryItems    GroceryItem[]
   archivedItems   ArchivedGroceryItem[]
+  pantryItems     PantryItem[]
 }
 
 model User {
@@ -76,6 +85,9 @@ model Recipe {
 
   // When the recipe was pinned to the top of the recipe box. Empty = not pinned.
   pinnedAt DateTime?
+
+  // True when Claude wrote the recipe from "What can I make?" (shown as "AI-generated").
+  aiGenerated Boolean @default(false)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -167,6 +179,22 @@ model ArchivedGroceryItem {
 
   @@unique([householdId, nameKey])
   @@index([householdId, timesBought])
+}
+
+// What's already in the house (fridge, freezer, cupboards).
+model PantryItem {
+  id      String @id @default(cuid())
+  name    String
+  // Lowercased, trimmed name so "Rice" and "rice " count as the same item
+  nameKey String
+  section String @default("Other")
+
+  household   Household @relation(fields: [householdId], references: [id], onDelete: Cascade)
+  householdId String
+
+  createdAt DateTime @default(now())
+
+  @@unique([householdId, nameKey])
 }
 
 // Phones signed up for grocery alerts.

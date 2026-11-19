@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { DEFAULT_STORE, SECTIONS, STORE_IDS, STORE_LABELS, isSection, type StoreId } from "@/lib/grocery";
+import { PantryPanel } from "@/components/PantryPanel";
 
 interface Item {
   id: string;
@@ -15,6 +16,7 @@ interface PastItem extends Item {
 }
 type ItemChanges = Partial<Pick<Item, "quantity" | "store" | "section">>;
 type View = StoreId | "all";
+type Mode = "list" | "pantry";
 
 const POLL_MS = 4000; // how often to check for changes made on other phones
 const UNDO_MS = 5000; // how long "Undo" stays available after checking something off
@@ -34,6 +36,8 @@ export function GroceryList({ token, householdName }: { token: string; household
 
   const [items, setItems] = useState<Item[]>([]);
   const [loaded, setLoaded] = useState(false);
+  // "#pantry" in the address opens the Pantry, so other pages can link straight to it.
+  const [mode, setMode] = useState<Mode>("list");
   const [view, setView] = useState<View>("all");
   const [allAddStore, setAllAddStore] = useState<StoreId>(DEFAULT_STORE);
   const [name, setName] = useState("");
@@ -188,6 +192,17 @@ export function GroceryList({ token, householdName }: { token: string; household
     save(() => fetch(`${api}/archive/${id}`, { method: "DELETE" }));
   }
 
+  useEffect(() => {
+    if (window.location.hash === "#pantry") setMode("pantry");
+  }, []);
+
+  function switchMode(next: Mode) {
+    setMode(next);
+    setEditingId(null);
+    window.history.replaceState(null, "", next === "pantry" ? "#pantry" : window.location.pathname);
+    if (next === "list") load();
+  }
+
   function switchView(next: View) {
     setView(next);
     setEditingId(null);
@@ -214,12 +229,31 @@ export function GroceryList({ token, householdName }: { token: string; household
       <div className="flex items-end justify-between gap-3">
         <div>
           <p className="label">{householdName}</p>
-          <h1 className="font-display text-3xl text-ink">Grocery List</h1>
+          <h1 className="font-display text-3xl text-ink">{mode === "pantry" ? "Pantry" : "Grocery List"}</h1>
         </div>
-        <button onClick={openPast} className="btn-secondary shrink-0">
-          ↺ Past items
-        </button>
+        {mode === "list" && (
+          <button onClick={openPast} className="btn-secondary shrink-0">
+            ↺ Past items
+          </button>
+        )}
       </div>
+
+      <div className="mt-4 grid grid-cols-2 rounded-full bg-linen-100 p-1 text-sm font-medium">
+        {(["list", "pantry"] as const).map((m) => (
+          <button
+            key={m}
+            onClick={() => switchMode(m)}
+            className={`rounded-full py-2 ${mode === m ? "bg-white text-ink shadow-sm" : "text-ink-light"}`}
+          >
+            {m === "list" ? "🛒 Shopping list" : "🥫 Pantry"}
+          </button>
+        ))}
+      </div>
+
+      {mode === "pantry" && <PantryPanel token={token} onAddedToList={load} />}
+
+      {mode === "list" && (
+      <>
 
       <div className="-mx-1 mt-5 flex gap-2 overflow-x-auto px-1 pb-1">
         {tabs.map((tab) => {
@@ -348,6 +382,9 @@ export function GroceryList({ token, householdName }: { token: string; household
           );
         })}
       </div>
+
+      </>
+      )}
 
       {lastBought && (
         <div className="fixed inset-x-0 bottom-4 z-40 flex justify-center px-4">
