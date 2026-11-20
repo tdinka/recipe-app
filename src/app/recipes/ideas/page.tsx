@@ -188,8 +188,14 @@ export default function RecipeIdeasPage() {
     if (idea.kind === "box" && idea.recipeId) {
       router.push(`/recipes/${idea.recipeId}`);
     } else if (idea.kind === "web" && idea.url) {
+      // Saved so the add-recipe page can offer to have Claude write a version if the site blocks the import.
+      try {
+        sessionStorage.setItem(IDEA_DRAFT_KEY, JSON.stringify(idea));
+      } catch {
+        // Import still works without it.
+      }
       // A full page load, so the add-recipe page reliably sees the address it was given.
-      window.location.assign(`/recipes/new?importUrl=${encodeURIComponent(idea.url)}`);
+      window.location.assign(`/recipes/new?importUrl=${encodeURIComponent(idea.url)}&fromIdea=1`);
     } else {
       try {
         sessionStorage.setItem(IDEA_DRAFT_KEY, JSON.stringify(idea));
@@ -342,7 +348,7 @@ export default function RecipeIdeasPage() {
             ))}
 
             {webStatus === "loading" && (
-              <LoadingCard text="Searching the web for real recipes… this can take up to a minute." />
+              <LoadingCard text="Searching the web for real recipes… this can take a minute or two." />
             )}
             {webError && (
               <p className="rounded-md bg-linen-100 px-4 py-2.5 text-sm text-ink-light">
@@ -398,9 +404,16 @@ function IdeaCard({ idea, onOpen }: { idea: RecipeIdea; onOpen: () => void }) {
       <p className="mt-0.5 text-sm text-ink">
         <span className="text-ink-light">To buy:</span> {idea.toBuy.length > 0 ? idea.toBuy.join(", ") : "nothing 🎉"}
       </p>
-      <button onClick={onOpen} className="btn-primary mt-3">
-        {ACTIONS[idea.kind]} →
-      </button>
+      <div className="mt-3 flex flex-wrap items-center gap-3">
+        <button onClick={onOpen} className="btn-primary">
+          {ACTIONS[idea.kind]} →
+        </button>
+        {idea.kind === "web" && idea.url && (
+          <a href={idea.url} target="_blank" rel="noopener noreferrer" className="text-sm text-ink-light underline">
+            View on site ↗
+          </a>
+        )}
+      </div>
     </div>
   );
 }

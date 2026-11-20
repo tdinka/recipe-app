@@ -53,6 +53,8 @@ export default function NewRecipePage() {
   // An AI idea from "What can I make?" being written out in full.
   const [idea, setIdea] = useState<RecipeIdea | null>(null);
   const [ideaError, setIdeaError] = useState<string | null>(null);
+  // The web idea being imported, so a blocked import can fall back to a Claude-written version.
+  const [webIdea, setWebIdea] = useState<RecipeIdea | null>(null);
   const [aiGenerated, setAiGenerated] = useState(false);
 
     function populateForm(recipe: ExtractedRecipe | {
@@ -205,6 +207,14 @@ export default function NewRecipePage() {
     const ideaUrl = httpLinkOrNull(params.get("importUrl"));
     if (ideaUrl) {
       window.history.replaceState(null, "", "/recipes/new");
+      if (params.get("fromIdea")) {
+        try {
+          const draft = JSON.parse(sessionStorage.getItem(IDEA_DRAFT_KEY) ?? "null");
+          if (draft?.title && draft.url === ideaUrl) setWebIdea(draft);
+        } catch {
+          // No fallback offered; the normal import error still shows.
+        }
+      }
       setUrl(ideaUrl);
       setMode("url");
       importUrl(ideaUrl);
@@ -279,6 +289,7 @@ export default function NewRecipePage() {
     setSharedSource(null);
     setIdea(null);
     setIdeaError(null);
+    setWebIdea(null);
     setAiGenerated(false);
     setMode("choose");
   }
@@ -327,6 +338,31 @@ export default function NewRecipePage() {
               <button type="button" onClick={() => setMode("image")} className="font-semibold underline">
                 Try a screenshot instead?
               </button>
+            </div>
+          )}
+          {urlError && webIdea && webIdea.url === url && (
+            <div className="space-y-2 rounded-lg bg-mustard-50 p-3 text-sm text-ink">
+              <p>
+                This site doesn&apos;t let the app read its recipes. Claude can write its own version of
+                &ldquo;{webIdea.title}&rdquo; instead. It&apos;s marked untested until you&apos;ve cooked it.
+              </p>
+              <div className="flex flex-wrap items-center gap-3">
+                <button
+                  type="button"
+                  onClick={() => {
+                    const fallback: RecipeIdea = { ...webIdea, kind: "ai", url: null, site: null };
+                    setIdea(fallback);
+                    setMode("idea");
+                    writeIdea(fallback);
+                  }}
+                  className="btn-primary"
+                >
+                  ✨ Have Claude write a version
+                </button>
+                <a href={webIdea.url} target="_blank" rel="noopener noreferrer" className="underline">
+                  View on site ↗
+                </a>
+              </div>
             </div>
           )}
           <p className="text-xs text-ink-light">

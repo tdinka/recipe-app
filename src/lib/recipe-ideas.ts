@@ -47,7 +47,7 @@ export interface IdeasResult {
 
 const MODEL = "claude-sonnet-5";
 const MAX_BOX_RECIPES = 200;
-const MAX_SEARCHES = 3;
+const MAX_SEARCHES = 2;
 // Web searches can make the server pause a long turn; resume it at most this many times.
 const MAX_RESUMES = 2;
 const RED_MEAT_LIMIT_PER_WEEK = 2;
@@ -62,6 +62,9 @@ const BLOCKED_DOMAINS = [
   "pinterest.com",
   "facebook.com",
   "reddit.com",
+  // These refused the importer from Railway (HTTP 403) in Nov 2026.
+  "theforkedspoon.com",
+  "houseofnasheats.com",
 ];
 
 // Beef, lamb, pork and the like, but not "chicken sausage" or "turkey bacon".
@@ -132,8 +135,12 @@ async function askClaude(body: Record<string, unknown>, timeoutMs: number) {
   const messages = [...(body.messages as { role: string; content: unknown }[])];
   const foundUrls = new Set<string>();
   let finalText = "";
+  // One time limit for the whole exchange, including resumes, so it stays inside the route's maxDuration.
+  const deadline = Date.now() + timeoutMs;
 
   for (let attempt = 0; attempt <= MAX_RESUMES; attempt++) {
+    const remaining = deadline - Date.now();
+    if (remaining < 5000) throw new RecipeIdeasError("That took too long. Try again.");
     let res: Response;
     try {
       res = await fetch("https://api.anthropic.com/v1/messages", {
@@ -144,7 +151,7 @@ async function askClaude(body: Record<string, unknown>, timeoutMs: number) {
           "anthropic-version": "2023-06-01",
         },
         body: JSON.stringify({ model: MODEL, ...body, messages }),
-        signal: AbortSignal.timeout(timeoutMs),
+        signal: AbortSignal.timeout(remaining),
       });
     } catch {
       throw new RecipeIdeasError("Couldn't reach the recipe service. Try again.");
@@ -228,7 +235,7 @@ const WEB_SYSTEM_PROMPT = `You help a family decide what to cook for dinner from
 
 You'll get the family's food preferences, the ingredients they have, and sometimes a protein they want to use and a note.
 
-Use web search to find exactly 3 real, well-reviewed recipes that fit. Link each to one specific recipe page (not a search page, roundup, listicle or video), using its exact URL from the search results. Prefer food blogs and recipe sites that publish full recipes with ingredient amounts. Keep searching to a minimum: 1 or 2 well-chosen searches are usually enough.
+Use web search to find exactly 3 real, well-reviewed recipes that fit. Link each to one specific recipe page (not a search page, roundup, listicle or video), using its exact URL from the search results. Prefer food blogs and recipe sites that publish full recipes with ingredient amounts. Keep searching to a minimum: one well-chosen search is usually enough, and never more than 2.
 
 ${SHARED_RULES}
 
@@ -301,7 +308,7 @@ export async function suggestRecipeIdeas(req: IdeasRequest): Promise<IdeasResult
           ],
           messages: [{ role: "user", content: userMessage }],
         },
-    quick ? 60000 : 150000
+    quick ? 60000 : 240000
   );
 
   const parsed = ideasOutputSchema.safeParse(parseJsonObject(text));
