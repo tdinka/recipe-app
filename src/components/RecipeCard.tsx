@@ -14,6 +14,7 @@ export interface RecipeCardData {
   totalMinutes: number | null;
   tags: string[];
   pinned: boolean;
+  aiGenerated?: boolean;
 }
 
 // onPinChange is only passed in the household's own recipe box; without it the
@@ -53,6 +54,7 @@ export function RecipeCard({
         <div className="mt-2 flex flex-wrap items-center gap-1.5">
           {recipe.category && <span className="category-pill">{recipe.category}</span>}
           {totalTime ? <span className="measure text-xs">{totalTime} min</span> : null}
+          {recipe.aiGenerated && <span className="text-xs text-mustard-dark">✨ Untested</span>}
           {recipe.cuisine && <span className="hidden text-xs text-ink-light sm:inline">{recipe.cuisine}</span>}
         </div>
         {recipe.tags.length > 0 && (

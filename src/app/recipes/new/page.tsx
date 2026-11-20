@@ -5,8 +5,10 @@ import { useRouter } from "next/navigation";
 import { RecipeForm, emptyRecipeForm, type RecipeFormValues } from "@/components/RecipeForm";
 import type { ExtractedRecipe } from "@/lib/recipe-extractor";
 import { ingredientsToText, parseIngredientLines } from "@/lib/ingredient-parser";
+import { IDEA_DRAFT_KEY } from "@/lib/constants";
+import type { RecipeIdea } from "@/lib/recipe-ideas";
 
-type Mode = "choose" | "url" | "image" | "text" | "manual" | "review";
+type Mode = "choose" | "url" | "image" | "text" | "manual" | "idea" | "review";
 
 function fileToDataUrl(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -48,6 +50,11 @@ export default function NewRecipePage() {
 
   const [formValues, setFormValues] = useState<RecipeFormValues | null>(null);
 
+  // An AI idea from "What can I make?" being written out in full.
+  const [idea, setIdea] = useState<RecipeIdea | null>(null);
+  const [ideaError, setIdeaError] = useState<string | null>(null);
+  const [aiGenerated, setAiGenerated] = useState(false);
+
     function populateForm(recipe: ExtractedRecipe | {
     title: string; sourceUrl: string | null; imageUrl: string | null; description: string | null;
     servings: number | null; prepMinutes: number | null; cookMinutes: number | null; totalMinutes: number | null;
@@ -77,6 +84,10 @@ export default function NewRecipePage() {
   async function handleImportUrl(e: React.FormEvent) {
     e.preventDefault();
     if (!url.trim()) return;
+    importUrl(url);
+  }
+
+  async function importUrl(url: string) {
     setUrlImporting(true);
     setUrlError(null);
     try {
@@ -164,11 +175,57 @@ export default function NewRecipePage() {
     importText(pastedText, sharedSource);
   }
 
+  async function writeIdea(idea: RecipeIdea) {
+    setIdeaError(null);
+    try {
+      const res = await fetch("/api/recipes/ideas/write", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ title: idea.title, description: idea.description, uses: idea.uses, toBuy: idea.toBuy }),
+      });
+      const json = await res.json();
+      if (!res.ok) {
+        setIdeaError(json.error ?? "Couldn't write that recipe out.");
+        return;
+      }
+      setAiGenerated(true);
+      populateForm(json.recipe);
+    } catch {
+      setIdeaError("Couldn't write that recipe out. Check your connection and try again.");
+    }
+  }
+
   // Arriving from the Add to Recipe Box shortcut: read the caption right away.
+  // Arriving from "What can I make?": import the web recipe, or write out the AI idea.
   useEffect(() => {
     if (sharedImportStarted.current) return;
     sharedImportStarted.current = true;
     const params = new URLSearchParams(window.location.search);
+
+    const ideaUrl = httpLinkOrNull(params.get("importUrl"));
+    if (ideaUrl) {
+      window.history.replaceState(null, "", "/recipes/new");
+      setUrl(ideaUrl);
+      setMode("url");
+      importUrl(ideaUrl);
+      return;
+    }
+    if (params.get("fromIdea")) {
+      window.history.replaceState(null, "", "/recipes/new");
+      let draft: RecipeIdea | null = null;
+      try {
+        draft = JSON.parse(sessionStorage.getItem(IDEA_DRAFT_KEY) ?? "null");
+      } catch {
+        draft = null;
+      }
+      if (draft?.title) {
+        setIdea(draft);
+        setMode("idea");
+        writeIdea(draft);
+        return;
+      }
+    }
+
     const text = params.get("sharedText")?.trim();
     if (!text) return;
     const source = httpLinkOrNull(params.get("sharedUrl"));
@@ -197,6 +254,7 @@ export default function NewRecipePage() {
       ingredients: parseIngredientLines(values.ingredientsText),
       instructions: values.instructionsText.split("\n").map((l) => l.trim()).filter(Boolean),
       tags: values.tagsText.split(",").map((t) => t.trim()).filter(Boolean),
+      aiGenerated,
     };
 
     const res = await fetch("/api/recipes", {
@@ -219,6 +277,9 @@ export default function NewRecipePage() {
     setPastedText("");
     setTextError(null);
     setSharedSource(null);
+    setIdea(null);
+    setIdeaError(null);
+    setAiGenerated(false);
     setMode("choose");
   }
 
@@ -334,10 +395,35 @@ export default function NewRecipePage() {
         </div>
       )}
 
+      {mode === "idea" && idea && (
+        <div className="card mt-6 space-y-3 p-6">
+          <p className="label">✨ New idea</p>
+          <p className="font-display text-xl text-ink">{idea.title}</p>
+          {ideaError ? (
+            <>
+              <p className="text-sm text-brick">{ideaError}</p>
+              <div className="flex gap-2">
+                <button onClick={() => writeIdea(idea)} className="btn-primary">Try again</button>
+                <button onClick={() => router.back()} className="btn-secondary">Back to ideas</button>
+              </div>
+            </>
+          ) : (
+            <p className="flex items-center gap-3 text-sm text-ink-light">
+              <span className="inline-block h-4 w-4 shrink-0 animate-spin rounded-full border-2 border-linen-300 border-t-forest" />
+              Writing out the full recipe… about 15 seconds.
+            </p>
+          )}
+        </div>
+      )}
+
       {mode === "review" && formValues && (
         <div className="mt-6">
-          <div className="mb-4 flex items-center justify-between rounded-md bg-forest-50 px-4 py-2 text-sm text-forest-dark">
-            <span>Imported! Review and edit anything before saving.</span>
+          <div className="mb-4 flex items-center justify-between gap-3 rounded-md bg-forest-50 px-4 py-2 text-sm text-forest-dark">
+            <span>
+              {aiGenerated
+                ? "Written by Claude. Review it and save it to your box. It's marked “AI-generated” until you've cooked it."
+                : "Imported! Review and edit anything before saving."}
+            </span>
             <button className="font-semibold hover:underline" onClick={startOver}>Start over</button>
           </div>
           <RecipeForm initial={formValues} onSubmit={handleSave} submitLabel="Save recipe" />

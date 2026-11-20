@@ -30,6 +30,7 @@ interface RecipeDetail {
   cuisine: string | null;
   notes: string | null;
   pinned: boolean;
+  aiGenerated: boolean;
   servingSuggestions: ServingSuggestion[] | null;
   ingredients: ParsedIngredient[];
   instructions: string[];
@@ -168,6 +169,12 @@ export default function RecipeDetailPage() {
     });
   }, [params.id]);
 
+  async function handleMarkTested() {
+    const res = await fetch(`/api/recipes/${params.id}/tested`, { method: "POST" });
+    if (res.ok) setRecipe((r) => (r ? { ...r, aiGenerated: false } : r));
+    else alert("Couldn't update that. Try again.");
+  }
+
   async function handleDelete() {
     if (!confirm("Delete this recipe? This can't be undone.")) return;
     await fetch(`/api/recipes/${params.id}`, { method: "DELETE" });
@@ -231,6 +238,17 @@ export default function RecipeDetailPage() {
           <button onClick={handleDelete} className="btn-ghost text-brick">Delete</button>
         </div>
       </div>
+
+      {recipe.aiGenerated && (
+        <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-2 rounded-md bg-mustard-50 px-4 py-2.5 text-sm text-ink">
+          <span>
+            <strong>✨ AI-generated, untested.</strong> Claude wrote this recipe, so check amounts and timings as you cook.
+          </span>
+          <button onClick={handleMarkTested} className="font-semibold text-mustard-dark underline">
+            We&apos;ve cooked it
+          </button>
+        </div>
+      )}
 
       <RecipeNotes recipeId={recipe.id} initialNotes={recipe.notes} />
 

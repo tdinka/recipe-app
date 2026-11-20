@@ -61,6 +61,7 @@ export async function GET(_req: Request, { params }: { params: { id: string } })
       cuisine: recipe.cuisine,
       notes: recipe.notes,
       pinned: recipe.pinnedAt !== null,
+      aiGenerated: recipe.aiGenerated,
       servingSuggestions: recipe.servingSuggestionsJson ? JSON.parse(recipe.servingSuggestionsJson) : null,
       ingredients: JSON.parse(recipe.ingredientsJson),
       instructions: JSON.parse(recipe.instructionsJson),

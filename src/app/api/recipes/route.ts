@@ -27,6 +27,8 @@ const recipeInputSchema = z.object({
   ingredients: z.array(ingredientSchema).default([]),
   instructions: z.array(z.string()).default([]),
   tags: z.array(z.string().min(1).max(40)).default([]),
+  // Set when the recipe came from an AI idea on "What can I make?".
+  aiGenerated: z.boolean().optional(),
 });
 
 export async function GET(req: Request) {
@@ -70,6 +72,7 @@ export async function GET(req: Request) {
       servings: r.servings,
       tags: r.tags.map((t) => t.tag.name),
       pinned: r.pinnedAt !== null,
+      aiGenerated: r.aiGenerated,
       createdAt: r.createdAt,
     })),
   });
@@ -115,6 +118,7 @@ export async function POST(req: Request) {
       cuisine: data.cuisine || null,
       ingredientsJson: JSON.stringify(data.ingredients),
       instructionsJson: JSON.stringify(data.instructions),
+      aiGenerated: data.aiGenerated ?? false,
       householdId,
       tags: { create: tagRecords.map((t) => ({ tagId: t.id })) },
     },

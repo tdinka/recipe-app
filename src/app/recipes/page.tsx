@@ -65,11 +65,16 @@ export default function RecipesPage() {
 
   return (
     <div>
-      <div>
-        <h1 className="font-display text-2xl text-ink sm:text-3xl">Your Recipe Box</h1>
-        <p className="mt-1 text-sm text-ink-light">
-          {recipes ? `${recipes.length} recipe${recipes.length === 1 ? "" : "s"}` : "Loading…"}
-        </p>
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <h1 className="font-display text-2xl text-ink sm:text-3xl">Your Recipe Box</h1>
+          <p className="mt-1 text-sm text-ink-light">
+            {recipes ? `${recipes.length} recipe${recipes.length === 1 ? "" : "s"}` : "Loading…"}
+          </p>
+        </div>
+        <Link href="/recipes/ideas" className="btn-primary shrink-0">
+          ✨ What can I make?
+        </Link>
       </div>
 
       {/* Phones: search on its own row, filters side by side below. Wider screens: one row. */}

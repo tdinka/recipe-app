@@ -86,8 +86,9 @@ export function FoodPreferences() {
             {FIELDS.map(({ key, label, placeholder }) => (
               <label key={key} className="block">
                 <span className="label">{label}</span>
-                <input
-                  className="input"
+                <textarea
+                  className="input resize-none"
+                  rows={2}
                   value={prefs[key]}
                   placeholder={placeholder}
                   maxLength={500}
